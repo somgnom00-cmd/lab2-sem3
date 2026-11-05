@@ -1,39 +1,80 @@
 #include "array.h"
+#include <iostream>
+#include <stdexcept>
 
-// ВСТАВКА: с автоматическим расширением памяти и сдвигом элементов
-void arrayInsert(Array& array, int index, const std::string& value) {
-    // 1. Если массив заполнен — выделяем новый блок памяти в 2 раза больше
+void arrayCheckIndex(const Array& array, int index, bool insertion) {
+    if (!(index >= 0 && (insertion ? index <= array.size : index < array.size))) throw std::runtime_error("индекс вне диапазона");
+}
+
+// Добавление в конец массива.
+void arrayPush(Array& array, const std::string& value) {
     if (array.size == array.capacity) {
-        array.capacity = array.capacity ? array.capacity * 2 : 4; // если был 0, берем 4, иначе удваиваем
-        std::string* expanded = new std::string[array.capacity];
-        for (int i = 0; i < array.size; ++i) expanded[i] = array.data[i]; // копируем старые данные
-        delete[] array.data;                                        // освобождаем старый блок
-        array.data = expanded;                                      // переключаем указатель
+        int capacity = array.capacity ? array.capacity * 2 : 4;
+        std::string* data = new std::string[capacity];
+
+        for (int i = 0; i < array.size; ++i)
+            data[i] = array.data[i];
+
+        delete[] array.data;
+        array.data = data;
+        array.capacity = capacity;
     }
-    // 2. Сдвигаем все элементы после index на 1 ячейку вправо, освобождая место
-    for (int i = array.size; i > index; --i) array.data[i] = array.data[i - 1];
-    array.data[index] = value;
+
+    array.data[array.size] = value;
     ++array.size;
 }
 
-// УДАЛЕНИЕ: сдвигаем все элементы после index на 1 ячейку влево, закрывая дырку
+void arrayInsert(Array& array, int index, const std::string& value) {
+    arrayCheckIndex(array, index, true);
+    arrayPush(array, value);
+
+    for (int i = array.size - 1; i > index; --i)
+        array.data[i] = array.data[i - 1];
+
+    array.data[index] = value;
+}
+
 void arrayErase(Array& array, int index) {
-    for (int i = index; i + 1 < array.size; ++i) array.data[i] = array.data[i + 1];
+    arrayCheckIndex(array, index);
+
+    for (int i = index; i < array.size - 1; ++i)
+        array.data[i] = array.data[i + 1];
+
     --array.size;
 }
 
-// ЭКСПОРТ: выгрузка данных в вектор для вывода PRINT и записи в файл
+std::string arrayGet(const Array& array, int index) {
+    arrayCheckIndex(array, index);
+    return array.data[index];
+}
+
+void arraySet(Array& array, int index, const std::string& value) {
+    arrayCheckIndex(array, index);
+    array.data[index] = value;
+}
+
+int arrayFind(const Array& array, const std::string& value) {
+    for (int i = 0; i < array.size; ++i)
+        if (array.data[i] == value) return i;
+
+    return -1;
+}
+
+int arrayValueIndex(const Array& array, const std::string& value) {
+    int index = arrayFind(array, value);
+    if (!(index >= 0)) throw std::runtime_error("значение не найдено");
+    return index;
+}
+
 std::vector<std::string> arrayValues(const Array& array) {
     std::vector<std::string> result;
-    for (int i = 0; i < array.size; ++i) result.push_back(array.data[i]);
+
+    for (int i = 0; i < array.size; ++i)
+        result.push_back(array.data[i]);
+
     return result;
 }
 
-// Чтение и замена значения по индексу.
-std::string arrayGet(const Array& array, int index) { return array.data[index]; }
-void arraySet(Array& array, int index, const std::string& value) { array.data[index] = value; }
-
-// Освобождение памяти вызывается явно при завершении программы.
 void clearArray(Array& array) {
     delete[] array.data;
     array.data = nullptr;

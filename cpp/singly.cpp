@@ -1,97 +1,123 @@
 #include "singly.h"
+#include <iostream>
+#include <stdexcept>
 
-// Освобождение памяти всех узлов списка.
-void clearSinglyList(SinglyList& list) {
-    while (list.head) {
-        SingleNode* removed = list.head;
-        list.head = list.head->next;
-        delete removed;
-    }
-    list.tail = nullptr;
-    list.size = 0;
-}
-
-// Поиск узла по индексу.
 SingleNode* singlyNodeAt(const SinglyList& list, int index) {
-    SingleNode* current = list.head;
-    for (int i = 0; i < index; ++i)
-        current = current->next;
-    return current;
+    if (!(index >= 0 && index < list.size)) throw std::runtime_error("индекс вне диапазона");
+    SingleNode* node = list.head;
+    for (int i = 0; i < index; ++i) node = node->next;
+    return node;
 }
 
-// Добавление элемента по индексу.
-void singlyInsert(SinglyList& list, int index,
-                  const std::string& value) {
+// Возвращаем адрес найденного узла или nullptr.
+SingleNode* singlyFindNode(const SinglyList& list, const std::string& value) {
+    SingleNode* node = list.head;
+    while (node) {
+        if (node->value == value) return node;
+        node = node->next;
+    }
+    return nullptr;
+}
+
+SingleNode* singlyPrevious(const SinglyList& list, SingleNode* node) {
+    SingleNode* before = nullptr;
+    for (SingleNode* current = list.head; current != node; current = current->next)
+        before = current;
+    return before;
+}
+
+// Присоединяем узел после before; nullptr означает начало списка.
+void singlyLink(SinglyList& list, SingleNode* before, const std::string& value) {
     SingleNode* added = new SingleNode{value};
-
-    // Находим предыдущий узел.
-    SingleNode* before = index == 0 ? nullptr :
-        (index == list.size ? list.tail :
-         singlyNodeAt(list, index - 1));
-
     added->next = before ? before->next : list.head;
-
-    if (before)
-        before->next = added;
-    else
-        list.head = added;
-
-    if (!added->next)
-        list.tail = added;
-
+    if (before) before->next = added;
+    else list.head = added;
+    if (!added->next) list.tail = added;
     ++list.size;
 }
 
-// Удаление элемента по индексу.
-void singlyErase(SinglyList& list, int index) {
-    SingleNode* before = index == 0 ? nullptr :
-        singlyNodeAt(list, index - 1);
-
-    SingleNode* removed = before ? before->next : list.head;
-
-    if (before)
-        before->next = removed->next;
-    else
-        list.head = removed->next;
-
-    if (removed == list.tail)
-        list.tail = before;
-
-    delete removed;
+void singlyRemove(SinglyList& list, SingleNode* node) {
+    if (!(node != nullptr)) throw std::runtime_error("нет элемента в выбранной позиции");
+    SingleNode* before = singlyPrevious(list, node);
+    if (before) before->next = node->next;
+    else list.head = node->next;
+    if (node == list.tail) list.tail = before;
+    delete node;
     --list.size;
 }
 
-// Поиск первого совпадения: индекс или -1.
-int singlyFind(const SinglyList& list,
-               const std::string& value) {
+void singlyInsert(SinglyList& list, int index, const std::string& value) {
+    if (!(index >= 0 && index <= list.size)) throw std::runtime_error("индекс вне диапазона");
+    SingleNode* before = nullptr;
+    if (index == list.size) before = list.tail;
+    else if (index > 0) before = singlyNodeAt(list, index - 1);
+    singlyLink(list, before, value);
+}
+
+void singlyErase(SinglyList& list, int index) {
+    singlyRemove(list, singlyNodeAt(list, index));
+}
+
+std::string singlyGet(const SinglyList& list, int index) {
+    return singlyNodeAt(list, index)->value;
+}
+
+int singlyFind(const SinglyList& list, const std::string& value) {
     int index = 0;
-    for (SingleNode* current = list.head;
-         current; current = current->next) {
-        if (current->value == value)
-            return index;
+    for (SingleNode* node = list.head; node; node = node->next) {
+        if (node->value == value) return index;
         ++index;
     }
     return -1;
 }
 
-// Получение всех значений для вывода и сохранения.
-std::vector<std::string> singlyValues(const SinglyList& list,
-                                      bool reverse) {
-    std::vector<std::string> result;
-
-    for (SingleNode* current = list.head;
-         current; current = current->next)
-        result.push_back(current->value);
-
-    if (reverse) {
-        for (int i = 0; i < list.size / 2; ++i)
-            std::swap(result[i], result[list.size - 1 - i]);
+void singlyPush(SinglyList& list, const std::string& position,
+                const std::string& target, const std::string& value) {
+    if (position == "HEAD") {
+        singlyLink(list, nullptr, value);
+        return;
     }
-
-    return result;
+    if (position == "TAIL") {
+        singlyLink(list, list.tail, value);
+        return;
+    }
+    if (!(position == "BEFORE" || position == "AFTER")) throw std::runtime_error("неизвестный способ; HELP");
+    SingleNode* found = singlyFindNode(list, target);
+    if (!(found != nullptr)) throw std::runtime_error("значение не найдено");
+    if (position == "BEFORE") {
+        SingleNode* before = singlyPrevious(list, found);
+        singlyLink(list, before, value);
+    } else {
+        singlyLink(list, found, value);
+    }
 }
 
-// Чтение значения по индексу.
-std::string singlyGet(const SinglyList& list, int index) {
-    return singlyNodeAt(list, index)->value;
+void singlyDelete(SinglyList& list, const std::string& position,
+                  const std::string& value) {
+    if (!(list.head != nullptr)) throw std::runtime_error("список пуст");
+    SingleNode* node = nullptr;
+    if (position == "HEAD") node = list.head;
+    else if (position == "TAIL") node = list.tail;
+    else {
+        if (!(position == "VALUE" || position == "BEFORE" || position == "AFTER")) throw std::runtime_error("неизвестный способ; HELP");
+        node = singlyFindNode(list, value);
+        if (!(node != nullptr)) throw std::runtime_error("значение не найдено");
+        if (position == "AFTER") node = node->next;
+        if (position == "BEFORE") node = singlyPrevious(list, node);
+    }
+    singlyRemove(list, node);
+}
+
+std::vector<std::string> singlyValues(const SinglyList& list, bool reverse) {
+    std::vector<std::string> values;
+    for (SingleNode* node = list.head; node; node = node->next)
+        values.push_back(node->value);
+    if (reverse)
+        for (int i = 0; i < list.size / 2; ++i)
+            std::swap(values[i], values[list.size - 1 - i]);
+    return values;
+}
+
+void clearSinglyList(SinglyList& list) {
+    while (list.head) singlyRemove(list, list.head);
 }

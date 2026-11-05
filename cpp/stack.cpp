@@ -1,4 +1,5 @@
 #include "stack.h"
+#include <iostream>
 
 // Добавляем новый узел на вершину стека.
 void stackPush(Stack& stack, const std::string& value) {
@@ -6,7 +7,7 @@ void stackPush(Stack& stack, const std::string& value) {
     ++stack.size;
 }
 
-// Удаляем верхний узел. Проверка на пустоту выполняется в commands.cpp.
+// Удаляем верхний узел.
 void stackPop(Stack& stack) {
     StackNode* removed = stack.top;
     stack.top = removed->next;

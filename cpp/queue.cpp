@@ -1,4 +1,5 @@
 #include "queue.h"
+#include <iostream>
 
 // Добавляем элемент в хвост.
 void queuePush(Queue& queue, const std::string& value) {

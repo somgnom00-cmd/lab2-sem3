@@ -21,5 +21,7 @@ std::string doublyGet(const DoublyList& list, int index);
 std::vector<std::string> doublyValues(const DoublyList& list, bool reverse = false);
 void clearDoublyList(DoublyList& list);
 
-// Добавил перенос известного узла в хвост без поиска по индексу.
-void doublyMoveToTail(DoublyList& list, DoubleNode* node);
+void doublyPush(DoublyList& list, const std::string& position,
+                const std::string& target, const std::string& value);
+void doublyDelete(DoublyList& list, const std::string& position,
+                  const std::string& value);

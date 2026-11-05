@@ -2,19 +2,18 @@
 #include <vector>
 #include <string>
 
-// Оставил только бинарное дерево поиска.
 struct TreeNode {
     std::string value;
     TreeNode* left = nullptr;
     TreeNode* right = nullptr;
 };
 
-struct SearchTree {
+struct CompleteTree {
     TreeNode* root = nullptr;
 };
 
-void treeSearchInsert(SearchTree& tree, int value);
-bool treeSearchFind(const SearchTree& tree, int value);
-std::vector<std::string> treeValues(const SearchTree& tree);
-std::vector<std::string> treeRightView(const SearchTree& tree);
-void clearTree(SearchTree& tree);
+void treeInsert(CompleteTree& tree, const std::string& value);
+bool treeFind(const CompleteTree& tree, const std::string& value);
+bool treeComplete(const CompleteTree& tree);
+std::vector<std::string> treeValues(const CompleteTree& tree);
+void clearTree(CompleteTree& tree);

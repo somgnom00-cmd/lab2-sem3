@@ -19,3 +19,8 @@ int singlyFind(const SinglyList& list, const std::string& value);
 std::string singlyGet(const SinglyList& list, int index);
 std::vector<std::string> singlyValues(const SinglyList& list, bool reverse = false);
 void clearSinglyList(SinglyList& list);
+
+void singlyPush(SinglyList& list, const std::string& position,
+                const std::string& target, const std::string& value);
+void singlyDelete(SinglyList& list, const std::string& position,
+                  const std::string& value);
