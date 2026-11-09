@@ -1,0 +1,42 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+
+interface Container {
+  +type(): string
+  +size(): size_t
+  +values(): vector<string>
+  +clear(): void
+  +saveText(file): void
+  +loadText(file): void
+  +saveBinary(file): void
+  +loadBinary(file): void
+}
+
+class Array
+class SinglyList
+class DoublyList
+class Stack
+class Queue
+class CompleteBinaryTree
+abstract class OpenAddressHashTable {
+  +set(key, value): void
+  +get(key, value): bool
+  +erase(key): bool
+  #probeStep(key): size_t
+}
+class LinearHashTable
+class DoubleHashTable
+class Database
+
+Container <|.. Array
+Container <|.. SinglyList
+Container <|.. DoublyList
+Container <|.. Stack
+Container <|.. Queue
+Container <|.. CompleteBinaryTree
+Container <|.. OpenAddressHashTable
+OpenAddressHashTable <|-- LinearHashTable
+OpenAddressHashTable <|-- DoubleHashTable
+Database "1" o-- "0..*" Container
+@enduml

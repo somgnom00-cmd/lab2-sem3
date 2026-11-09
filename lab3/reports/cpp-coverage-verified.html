@@ -1,0 +1,1559 @@
+<!DOCTYPE html><html lang="ru"><meta charset="utf-8"><title>Покрытие C++ ЛР3</title>
+<style>body{font:16px system-ui;max-width:1000px;margin:40px auto;padding:0 20px}table{border-collapse:collapse}td,th{padding:.5em 1em;border:1px solid #ccd}td:last-child{text-align:right}pre{overflow:auto;line-height:1.5;background:#f6f7f9;padding:12px}pre span{display:block}.yes{background:#d9f1dc}.no{background:#fbd6d7}details{margin:16px 0}summary{cursor:pointer}</style>
+<h1>Покрытие C++ ЛР3</h1><p>Фактические данные g++/gcov после запуска 31 сценария doctest, демо и бенчмарка. Зелёные строки исполнены, красные не исполнены; серые не содержат исполняемого кода. Тесты и сторонний код исключены.</p>
+<table><tr><th>Файл</th><th>Строки</th><th>Покрытие</th></tr>
+<tr><td><a href="#f0">cpp/benchmarks/benchmark.cpp</a></td><td>54/60</td><td>90.00%</td></tr>
+<tr><td><a href="#f1">cpp/include/container.h</a></td><td>1/1</td><td>100.00%</td></tr>
+<tr><td><a href="#f2">cpp/include/database.h</a></td><td>1/1</td><td>100.00%</td></tr>
+<tr><td><a href="#f3">cpp/include/hash_table.h</a></td><td>5/5</td><td>100.00%</td></tr>
+<tr><td><a href="#f4">cpp/include/structures.h</a></td><td>30/30</td><td>100.00%</td></tr>
+<tr><td><a href="#f5">cpp/src/container.cpp</a></td><td>86/93</td><td>92.47%</td></tr>
+<tr><td><a href="#f6">cpp/src/database.cpp</a></td><td>38/39</td><td>97.44%</td></tr>
+<tr><td><a href="#f7">cpp/src/hash_table.cpp</a></td><td>112/126</td><td>88.89%</td></tr>
+<tr><td><a href="#f8">cpp/src/main.cpp</a></td><td>66/72</td><td>91.67%</td></tr>
+<tr><td><a href="#f9">cpp/src/structures.cpp</a></td><td>487/500</td><td>97.40%</td></tr>
+<tr><th>Итого</th><th>880/927</th><th>94.93%</th></tr></table>
+<details id="f0"><summary>cpp/benchmarks/benchmark.cpp</summary><pre>
+<span class="">   1 #include &quot;hash_table.h&quot;</span>
+<span class="">   2 #include &quot;structures.h&quot;</span>
+<span class="">   3 </span>
+<span class="">   4 #include &lt;chrono&gt;</span>
+<span class="">   5 #include &lt;cstddef&gt;</span>
+<span class="">   6 #include &lt;iomanip&gt;</span>
+<span class="">   7 #include &lt;iostream&gt;</span>
+<span class="">   8 #include &lt;string&gt;</span>
+<span class="">   9 </span>
+<span class="yes">  10 template &lt;typename Action&gt; double milliseconds(Action action) {</span>
+<span class="yes">  11     const auto start = std::chrono::steady_clock::now();</span>
+<span class="yes">  12     action();</span>
+<span class="yes">  13     const auto finish = std::chrono::steady_clock::now();</span>
+<span class="yes">  14     return std::chrono::duration&lt;double, std::milli&gt;(finish - start).count();</span>
+<span class="">  15 }</span>
+<span class="">  16 </span>
+<span class="yes">  17 int main() try { // NOLINT(bugprone-exception-escape): ниже есть catch для всех исключений.</span>
+<span class="yes">  18     constexpr int count = 5&#x27;000;</span>
+<span class="yes">  19     volatile int guard = 0;</span>
+<span class="yes">  20     std::cout &lt;&lt; &quot;LAB3 benchmark, variant 1\n&quot;;</span>
+<span class="yes">  21     std::cout &lt;&lt; &quot;Operations per test: &quot; &lt;&lt; count &lt;&lt; &quot;\n\n&quot;;</span>
+<span class="yes">  22     std::cout &lt;&lt; std::fixed &lt;&lt; std::setprecision(3);</span>
+<span class="">  23 </span>
+<span class="yes">  24     Array array;</span>
+<span class="yes">  25     std::cout &lt;&lt; &quot;Array pushBack:     &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  26         for (int i = 0; i &lt; count; ++i)</span>
+<span class="yes">  27             array.pushBack(std::to_string(i));</span>
+<span class="yes">  28     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="yes">  29     std::cout &lt;&lt; &quot;Array indexed read: &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  30         for (int i = 0; i &lt; count; ++i)</span>
+<span class="yes">  31             guard += static_cast&lt;int&gt;(array.at(i).size());</span>
+<span class="yes">  32     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="">  33 </span>
+<span class="yes">  34     SinglyList list;</span>
+<span class="yes">  35     std::cout &lt;&lt; &quot;List pushBack:      &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  36         for (int i = 0; i &lt; count; ++i)</span>
+<span class="yes">  37             list.pushBack(std::to_string(i));</span>
+<span class="yes">  38     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="yes">  39     std::cout &lt;&lt; &quot;List sequential:    &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  40         for (const auto &amp;value : list.values())</span>
+<span class="yes">  41             guard += static_cast&lt;int&gt;(value.size());</span>
+<span class="yes">  42     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="">  43 </span>
+<span class="yes">  44     LinearHashTable linear;</span>
+<span class="yes">  45     std::cout &lt;&lt; &quot;Linear hash insert: &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  46         for (int i = 0; i &lt; count; ++i)</span>
+<span class="yes">  47             linear.set(i * 7919, i);</span>
+<span class="yes">  48     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="yes">  49     std::cout &lt;&lt; &quot;Linear hash search: &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  50         for (int i = 0; i &lt; count; ++i) {</span>
+<span class="yes">  51             int value = 0;</span>
+<span class="yes">  52             if (linear.get(i * 7919, value))</span>
+<span class="yes">  53                 guard += value &amp; 1;</span>
+<span class="">  54         }</span>
+<span class="yes">  55     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="">  56 </span>
+<span class="yes">  57     DoubleHashTable doubled;</span>
+<span class="yes">  58     std::cout &lt;&lt; &quot;Double hash insert: &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  59         for (int i = 0; i &lt; count; ++i)</span>
+<span class="yes">  60             doubled.set(i * 7919, i);</span>
+<span class="yes">  61     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="yes">  62     std::cout &lt;&lt; &quot;Double hash search: &quot; &lt;&lt; milliseconds([&amp;] {</span>
+<span class="yes">  63         for (int i = 0; i &lt; count; ++i) {</span>
+<span class="yes">  64             int value = 0;</span>
+<span class="yes">  65             if (doubled.get(i * 7919, value))</span>
+<span class="yes">  66                 guard += value &amp; 1;</span>
+<span class="">  67         }</span>
+<span class="yes">  68     }) &lt;&lt; &quot; ms\n&quot;;</span>
+<span class="">  69 </span>
+<span class="yes">  70     std::cout &lt;&lt; &quot;\nGuard value: &quot; &lt;&lt; guard &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="yes">  71     return 0;</span>
+<span class="yes">  72 } catch (const std::exception &amp;error) {</span>
+<span class="no">  73     std::cerr &lt;&lt; &quot;Benchmark error: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="no">  74     return 1;</span>
+<span class="no">  75 } catch (...) {</span>
+<span class="no">  76     std::cerr &lt;&lt; &quot;Benchmark error: unknown exception\n&quot;;</span>
+<span class="no">  77     return 2;</span>
+<span class="no">  78 }</span>
+</pre></details>
+<details id="f1"><summary>cpp/include/container.h</summary><pre>
+<span class="">   1 #pragma once</span>
+<span class="">   2 </span>
+<span class="">   3 #include &lt;cstddef&gt;</span>
+<span class="">   4 #include &lt;filesystem&gt;</span>
+<span class="">   5 #include &lt;string&gt;</span>
+<span class="">   6 #include &lt;vector&gt;</span>
+<span class="">   7 </span>
+<span class="">   8 // Общий полиморфный интерфейс контейнеров ЛР3.</span>
+<span class="">   9 class Container {</span>
+<span class="">  10   public:</span>
+<span class="yes">  11     virtual ~Container() = default;</span>
+<span class="">  12 </span>
+<span class="">  13     virtual std::string type() const = 0;</span>
+<span class="">  14     virtual std::size_t size() const noexcept = 0;</span>
+<span class="">  15     virtual std::vector&lt;std::string&gt; values() const = 0;</span>
+<span class="">  16     virtual void clear() noexcept = 0;</span>
+<span class="">  17 </span>
+<span class="">  18     void saveText(const std::filesystem::path &amp;file) const;</span>
+<span class="">  19     void loadText(const std::filesystem::path &amp;file);</span>
+<span class="">  20     void saveBinary(const std::filesystem::path &amp;file) const;</span>
+<span class="">  21     void loadBinary(const std::filesystem::path &amp;file);</span>
+<span class="">  22 </span>
+<span class="">  23   private:</span>
+<span class="">  24     void restore(const std::vector&lt;std::string&gt; &amp;stored);</span>
+<span class="">  25 </span>
+<span class="">  26   protected:</span>
+<span class="">  27     virtual void swapContents(Container &amp;other) noexcept = 0;</span>
+<span class="">  28     virtual void appendSerialized(const std::string &amp;value) = 0;</span>
+<span class="">  29 };</span>
+</pre></details>
+<details id="f2"><summary>cpp/include/database.h</summary><pre>
+<span class="">   1 #pragma once</span>
+<span class="">   2 </span>
+<span class="">   3 #include &quot;container.h&quot;</span>
+<span class="">   4 </span>
+<span class="">   5 #include &lt;map&gt;</span>
+<span class="">   6 #include &lt;memory&gt;</span>
+<span class="">   7 #include &lt;string&gt;</span>
+<span class="">   8 </span>
+<span class="">   9 std::unique_ptr&lt;Container&gt; makeContainer(const std::string &amp;type);</span>
+<span class="">  10 </span>
+<span class="">  11 class Database {</span>
+<span class="">  12   public:</span>
+<span class="">  13     Container &amp;create(const std::string &amp;name, const std::string &amp;type);</span>
+<span class="">  14     Container &amp;get(const std::string &amp;name);</span>
+<span class="">  15     const Container &amp;get(const std::string &amp;name) const;</span>
+<span class="">  16     bool erase(const std::string &amp;name) noexcept;</span>
+<span class="yes">  17     std::size_t size() const noexcept { return items_.size(); }</span>
+<span class="">  18 </span>
+<span class="">  19   private:</span>
+<span class="">  20     std::map&lt;std::string, std::unique_ptr&lt;Container&gt;&gt; items_;</span>
+<span class="">  21 };</span>
+</pre></details>
+<details id="f3"><summary>cpp/include/hash_table.h</summary><pre>
+<span class="">   1 #pragma once</span>
+<span class="">   2 </span>
+<span class="">   3 #include &quot;container.h&quot;</span>
+<span class="">   4 </span>
+<span class="">   5 #include &lt;cstddef&gt;</span>
+<span class="">   6 #include &lt;string&gt;</span>
+<span class="">   7 #include &lt;vector&gt;</span>
+<span class="">   8 </span>
+<span class="">   9 class OpenAddressHashTable : public Container {</span>
+<span class="">  10   public:</span>
+<span class="">  11     explicit OpenAddressHashTable(std::size_t capacity = 17);</span>
+<span class="">  12 </span>
+<span class="">  13     void set(int key, int value);</span>
+<span class="">  14     bool get(int key, int &amp;value) const;</span>
+<span class="">  15     bool erase(int key);</span>
+<span class="">  16     bool contains(int key) const;</span>
+<span class="">  17 </span>
+<span class="yes">  18     std::size_t size() const noexcept override { return size_; }</span>
+<span class="">  19     std::vector&lt;std::string&gt; values() const override;</span>
+<span class="">  20     void clear() noexcept override;</span>
+<span class="yes">  21     std::size_t capacity() const noexcept { return cells_.size(); }</span>
+<span class="">  22 </span>
+<span class="">  23   protected:</span>
+<span class="">  24     void swapContents(Container &amp;other) noexcept override;</span>
+<span class="">  25     enum class State { empty, occupied, deleted };</span>
+<span class="">  26     struct Cell {</span>
+<span class="">  27         int key = 0;</span>
+<span class="">  28         int value = 0;</span>
+<span class="">  29         State state = State::empty;</span>
+<span class="">  30     };</span>
+<span class="">  31 </span>
+<span class="">  32     virtual std::size_t probeStep(int key) const = 0;</span>
+<span class="">  33     void appendSerialized(const std::string &amp;value) override;</span>
+<span class="">  34 </span>
+<span class="">  35   private:</span>
+<span class="">  36     static long long foldKey(int key) noexcept;</span>
+<span class="">  37     static std::size_t nextPrime(std::size_t value);</span>
+<span class="">  38     std::size_t startIndex(int key) const noexcept;</span>
+<span class="">  39     std::size_t locate(int key) const noexcept;</span>
+<span class="">  40     void rebuild(std::size_t capacity);</span>
+<span class="">  41 </span>
+<span class="">  42     std::vector&lt;Cell&gt; cells_;</span>
+<span class="">  43     std::size_t size_ = 0;</span>
+<span class="">  44     std::size_t deleted_ = 0;</span>
+<span class="">  45 };</span>
+<span class="">  46 </span>
+<span class="">  47 // Вариант 1 ЛР2: линейное пробирование.</span>
+<span class="">  48 class LinearHashTable final : public OpenAddressHashTable {</span>
+<span class="">  49   public:</span>
+<span class="">  50     using OpenAddressHashTable::OpenAddressHashTable;</span>
+<span class="yes">  51     std::string type() const override { return &quot;LinearHashTable&quot;; }</span>
+<span class="">  52 </span>
+<span class="">  53   protected:</span>
+<span class="yes">  54     std::size_t probeStep(int) const override { return 1; }</span>
+<span class="">  55 };</span>
+<span class="">  56 </span>
+<span class="">  57 // Вариант 1 ЛР2: двойное хеширование.</span>
+<span class="">  58 class DoubleHashTable final : public OpenAddressHashTable {</span>
+<span class="">  59   public:</span>
+<span class="">  60     using OpenAddressHashTable::OpenAddressHashTable;</span>
+<span class="yes">  61     std::string type() const override { return &quot;DoubleHashTable&quot;; }</span>
+<span class="">  62 </span>
+<span class="">  63   protected:</span>
+<span class="">  64     std::size_t probeStep(int key) const override;</span>
+<span class="">  65 };</span>
+</pre></details>
+<details id="f4"><summary>cpp/include/structures.h</summary><pre>
+<span class="">   1 #pragma once</span>
+<span class="">   2 </span>
+<span class="">   3 #include &quot;container.h&quot;</span>
+<span class="">   4 </span>
+<span class="">   5 #include &lt;cstddef&gt;</span>
+<span class="">   6 #include &lt;string&gt;</span>
+<span class="">   7 #include &lt;ostream&gt;</span>
+<span class="">   8 #include &lt;vector&gt;</span>
+<span class="">   9 #include &lt;utility&gt;</span>
+<span class="">  10 </span>
+<span class="">  11 class Array final : public Container {</span>
+<span class="">  12   public:</span>
+<span class="yes">  13     Array() = default;</span>
+<span class="">  14     Array(const Array &amp;other);</span>
+<span class="">  15     Array(Array &amp;&amp;other) noexcept;</span>
+<span class="">  16     Array &amp;operator=(const Array &amp;other);</span>
+<span class="">  17     Array &amp;operator=(Array &amp;&amp;other) noexcept;</span>
+<span class="">  18     ~Array() override;</span>
+<span class="">  19 </span>
+<span class="">  20     void pushBack(const std::string &amp;value);</span>
+<span class="">  21     void insert(std::size_t index, const std::string &amp;value);</span>
+<span class="">  22     void erase(std::size_t index);</span>
+<span class="">  23     const std::string &amp;at(std::size_t index) const;</span>
+<span class="">  24     void set(std::size_t index, const std::string &amp;value);</span>
+<span class="yes">  25     const std::string &amp;operator[](std::size_t index) const { return at(index); }</span>
+<span class="">  26     friend std::ostream &amp;operator&lt;&lt;(std::ostream &amp;output, const Array &amp;array);</span>
+<span class="">  27     int find(const std::string &amp;value) const noexcept;</span>
+<span class="">  28 </span>
+<span class="yes">  29     std::string type() const override { return &quot;Array&quot;; }</span>
+<span class="yes">  30     std::size_t size() const noexcept override { return size_; }</span>
+<span class="">  31     std::vector&lt;std::string&gt; values() const override;</span>
+<span class="">  32     void clear() noexcept override;</span>
+<span class="">  33 </span>
+<span class="">  34   protected:</span>
+<span class="yes">  35     void swapContents(Container &amp;other) noexcept override { *this = std::move(static_cast&lt;Array &amp;&gt;(other)); }</span>
+<span class="yes">  36     void appendSerialized(const std::string &amp;value) override { pushBack(value); }</span>
+<span class="">  37 </span>
+<span class="">  38   private:</span>
+<span class="">  39     void reserve(std::size_t newCapacity);</span>
+<span class="">  40 </span>
+<span class="">  41     std::string *data_ = nullptr;</span>
+<span class="">  42     std::size_t size_ = 0;</span>
+<span class="">  43     std::size_t capacity_ = 0;</span>
+<span class="">  44 };</span>
+<span class="">  45 </span>
+<span class="">  46 class SinglyList final : public Container {</span>
+<span class="">  47   public:</span>
+<span class="yes">  48     SinglyList() = default;</span>
+<span class="">  49     SinglyList(const SinglyList &amp;other);</span>
+<span class="">  50     SinglyList(SinglyList &amp;&amp;other) noexcept;</span>
+<span class="">  51     SinglyList &amp;operator=(const SinglyList &amp;other);</span>
+<span class="">  52     SinglyList &amp;operator=(SinglyList &amp;&amp;other) noexcept;</span>
+<span class="">  53     ~SinglyList() override;</span>
+<span class="">  54 </span>
+<span class="">  55     void pushFront(const std::string &amp;value);</span>
+<span class="">  56     void pushBack(const std::string &amp;value);</span>
+<span class="">  57     void insert(std::size_t index, const std::string &amp;value);</span>
+<span class="">  58     void erase(std::size_t index);</span>
+<span class="">  59     const std::string &amp;at(std::size_t index) const;</span>
+<span class="">  60     int find(const std::string &amp;value) const noexcept;</span>
+<span class="">  61 </span>
+<span class="yes">  62     std::string type() const override { return &quot;SinglyList&quot;; }</span>
+<span class="yes">  63     std::size_t size() const noexcept override { return size_; }</span>
+<span class="">  64     std::vector&lt;std::string&gt; values() const override;</span>
+<span class="">  65     void clear() noexcept override;</span>
+<span class="">  66 </span>
+<span class="">  67   protected:</span>
+<span class="yes">  68     void swapContents(Container &amp;other) noexcept override { swap(static_cast&lt;SinglyList &amp;&gt;(other)); }</span>
+<span class="yes">  69     void appendSerialized(const std::string &amp;value) override { pushBack(value); }</span>
+<span class="">  70 </span>
+<span class="">  71   private:</span>
+<span class="">  72     struct Node {</span>
+<span class="">  73         std::string value;</span>
+<span class="">  74         Node *next = nullptr;</span>
+<span class="">  75     };</span>
+<span class="">  76 </span>
+<span class="">  77     Node *nodeAt(std::size_t index) const;</span>
+<span class="">  78     void swap(SinglyList &amp;other) noexcept;</span>
+<span class="">  79 </span>
+<span class="">  80     Node *head_ = nullptr;</span>
+<span class="">  81     Node *tail_ = nullptr;</span>
+<span class="">  82     std::size_t size_ = 0;</span>
+<span class="">  83 };</span>
+<span class="">  84 </span>
+<span class="">  85 class DoublyList final : public Container {</span>
+<span class="">  86   public:</span>
+<span class="yes">  87     DoublyList() = default;</span>
+<span class="">  88     DoublyList(const DoublyList &amp;other);</span>
+<span class="">  89     DoublyList(DoublyList &amp;&amp;other) noexcept;</span>
+<span class="">  90     DoublyList &amp;operator=(const DoublyList &amp;other);</span>
+<span class="">  91     DoublyList &amp;operator=(DoublyList &amp;&amp;other) noexcept;</span>
+<span class="">  92     ~DoublyList() override;</span>
+<span class="">  93 </span>
+<span class="">  94     void pushFront(const std::string &amp;value);</span>
+<span class="">  95     void pushBack(const std::string &amp;value);</span>
+<span class="">  96     void insert(std::size_t index, const std::string &amp;value);</span>
+<span class="">  97     void erase(std::size_t index);</span>
+<span class="">  98     const std::string &amp;at(std::size_t index) const;</span>
+<span class="">  99     int find(const std::string &amp;value) const noexcept;</span>
+<span class=""> 100     std::vector&lt;std::string&gt; reverseValues() const;</span>
+<span class=""> 101 </span>
+<span class="yes"> 102     std::string type() const override { return &quot;DoublyList&quot;; }</span>
+<span class="yes"> 103     std::size_t size() const noexcept override { return size_; }</span>
+<span class=""> 104     std::vector&lt;std::string&gt; values() const override;</span>
+<span class=""> 105     void clear() noexcept override;</span>
+<span class=""> 106 </span>
+<span class=""> 107   protected:</span>
+<span class="yes"> 108     void swapContents(Container &amp;other) noexcept override { swap(static_cast&lt;DoublyList &amp;&gt;(other)); }</span>
+<span class="yes"> 109     void appendSerialized(const std::string &amp;value) override { pushBack(value); }</span>
+<span class=""> 110 </span>
+<span class=""> 111   private:</span>
+<span class=""> 112     struct Node {</span>
+<span class=""> 113         std::string value;</span>
+<span class=""> 114         Node *prev = nullptr;</span>
+<span class=""> 115         Node *next = nullptr;</span>
+<span class=""> 116     };</span>
+<span class=""> 117 </span>
+<span class=""> 118     Node *nodeAt(std::size_t index) const;</span>
+<span class=""> 119     void linkAfter(Node *before, const std::string &amp;value);</span>
+<span class=""> 120     void swap(DoublyList &amp;other) noexcept;</span>
+<span class=""> 121 </span>
+<span class=""> 122     Node *head_ = nullptr;</span>
+<span class=""> 123     Node *tail_ = nullptr;</span>
+<span class=""> 124     std::size_t size_ = 0;</span>
+<span class=""> 125 };</span>
+<span class=""> 126 </span>
+<span class=""> 127 class Stack final : public Container {</span>
+<span class=""> 128   public:</span>
+<span class="yes"> 129     Stack() = default;</span>
+<span class=""> 130     Stack(const Stack &amp;other);</span>
+<span class=""> 131     Stack(Stack &amp;&amp;other) noexcept;</span>
+<span class=""> 132     Stack &amp;operator=(const Stack &amp;other);</span>
+<span class=""> 133     Stack &amp;operator=(Stack &amp;&amp;other) noexcept;</span>
+<span class=""> 134     ~Stack() override;</span>
+<span class=""> 135 </span>
+<span class=""> 136     void push(const std::string &amp;value);</span>
+<span class=""> 137     std::string pop();</span>
+<span class=""> 138     const std::string &amp;top() const;</span>
+<span class=""> 139 </span>
+<span class="yes"> 140     std::string type() const override { return &quot;Stack&quot;; }</span>
+<span class="yes"> 141     std::size_t size() const noexcept override { return size_; }</span>
+<span class=""> 142     std::vector&lt;std::string&gt; values() const override;</span>
+<span class=""> 143     void clear() noexcept override;</span>
+<span class=""> 144 </span>
+<span class=""> 145   protected:</span>
+<span class="yes"> 146     void swapContents(Container &amp;other) noexcept override { swap(static_cast&lt;Stack &amp;&gt;(other)); }</span>
+<span class=""> 147     void appendSerialized(const std::string &amp;value) override;</span>
+<span class=""> 148 </span>
+<span class=""> 149   private:</span>
+<span class=""> 150     struct Node {</span>
+<span class=""> 151         std::string value;</span>
+<span class=""> 152         Node *next = nullptr;</span>
+<span class=""> 153     };</span>
+<span class=""> 154 </span>
+<span class=""> 155     void swap(Stack &amp;other) noexcept;</span>
+<span class=""> 156     Node *top_ = nullptr;</span>
+<span class=""> 157     std::size_t size_ = 0;</span>
+<span class=""> 158 };</span>
+<span class=""> 159 </span>
+<span class=""> 160 class Queue final : public Container {</span>
+<span class=""> 161   public:</span>
+<span class="yes"> 162     Queue() = default;</span>
+<span class=""> 163     Queue(const Queue &amp;other);</span>
+<span class=""> 164     Queue(Queue &amp;&amp;other) noexcept;</span>
+<span class=""> 165     Queue &amp;operator=(const Queue &amp;other);</span>
+<span class=""> 166     Queue &amp;operator=(Queue &amp;&amp;other) noexcept;</span>
+<span class=""> 167     ~Queue() override;</span>
+<span class=""> 168 </span>
+<span class=""> 169     void push(const std::string &amp;value);</span>
+<span class=""> 170     std::string pop();</span>
+<span class=""> 171     const std::string &amp;front() const;</span>
+<span class=""> 172 </span>
+<span class="yes"> 173     std::string type() const override { return &quot;Queue&quot;; }</span>
+<span class="yes"> 174     std::size_t size() const noexcept override { return size_; }</span>
+<span class=""> 175     std::vector&lt;std::string&gt; values() const override;</span>
+<span class=""> 176     void clear() noexcept override;</span>
+<span class=""> 177 </span>
+<span class=""> 178   protected:</span>
+<span class="yes"> 179     void swapContents(Container &amp;other) noexcept override { swap(static_cast&lt;Queue &amp;&gt;(other)); }</span>
+<span class="yes"> 180     void appendSerialized(const std::string &amp;value) override { push(value); }</span>
+<span class=""> 181 </span>
+<span class=""> 182   private:</span>
+<span class=""> 183     struct Node {</span>
+<span class=""> 184         std::string value;</span>
+<span class=""> 185         Node *next = nullptr;</span>
+<span class=""> 186     };</span>
+<span class=""> 187 </span>
+<span class=""> 188     void swap(Queue &amp;other) noexcept;</span>
+<span class=""> 189     Node *head_ = nullptr;</span>
+<span class=""> 190     Node *tail_ = nullptr;</span>
+<span class=""> 191     std::size_t size_ = 0;</span>
+<span class=""> 192 };</span>
+<span class=""> 193 </span>
+<span class=""> 194 // Вариант 3 ЛР1: полное бинарное дерево, заполнение по уровням.</span>
+<span class=""> 195 class CompleteBinaryTree final : public Container {</span>
+<span class=""> 196   public:</span>
+<span class="yes"> 197     CompleteBinaryTree() = default;</span>
+<span class=""> 198     CompleteBinaryTree(const CompleteBinaryTree &amp;other);</span>
+<span class=""> 199     CompleteBinaryTree(CompleteBinaryTree &amp;&amp;other) noexcept;</span>
+<span class=""> 200     CompleteBinaryTree &amp;operator=(const CompleteBinaryTree &amp;other);</span>
+<span class=""> 201     CompleteBinaryTree &amp;operator=(CompleteBinaryTree &amp;&amp;other) noexcept;</span>
+<span class=""> 202     ~CompleteBinaryTree() override;</span>
+<span class=""> 203 </span>
+<span class=""> 204     void insert(const std::string &amp;value);</span>
+<span class=""> 205     bool contains(const std::string &amp;value) const;</span>
+<span class=""> 206     bool isComplete() const;</span>
+<span class=""> 207 </span>
+<span class="yes"> 208     std::string type() const override { return &quot;CompleteBinaryTree&quot;; }</span>
+<span class="yes"> 209     std::size_t size() const noexcept override { return size_; }</span>
+<span class=""> 210     std::vector&lt;std::string&gt; values() const override;</span>
+<span class=""> 211     void clear() noexcept override;</span>
+<span class=""> 212 </span>
+<span class=""> 213   protected:</span>
+<span class="yes"> 214     void swapContents(Container &amp;other) noexcept override { swap(static_cast&lt;CompleteBinaryTree &amp;&gt;(other)); }</span>
+<span class="yes"> 215     void appendSerialized(const std::string &amp;value) override { insert(value); }</span>
+<span class=""> 216 </span>
+<span class=""> 217   private:</span>
+<span class=""> 218     struct Node {</span>
+<span class=""> 219         std::string value;</span>
+<span class=""> 220         Node *left = nullptr;</span>
+<span class=""> 221         Node *right = nullptr;</span>
+<span class=""> 222     };</span>
+<span class=""> 223 </span>
+<span class=""> 224     static void destroy(Node *node) noexcept;</span>
+<span class=""> 225     void swap(CompleteBinaryTree &amp;other) noexcept;</span>
+<span class=""> 226 </span>
+<span class=""> 227     Node *root_ = nullptr;</span>
+<span class=""> 228     std::size_t size_ = 0;</span>
+<span class=""> 229 };</span>
+</pre></details>
+<details id="f5"><summary>cpp/src/container.cpp</summary><pre>
+<span class="">   1 #include &quot;container.h&quot;</span>
+<span class="">   2 #include &quot;database.h&quot;</span>
+<span class="">   3 </span>
+<span class="">   4 #include &lt;cstdint&gt;</span>
+<span class="">   5 #include &lt;fstream&gt;</span>
+<span class="">   6 #include &lt;iomanip&gt;</span>
+<span class="">   7 #include &lt;limits&gt;</span>
+<span class="">   8 #include &lt;stdexcept&gt;</span>
+<span class="">   9 </span>
+<span class="">  10 namespace {</span>
+<span class="">  11 constexpr char binaryMagic[] = &quot;LAB3BIN1&quot;;</span>
+<span class="">  12 constexpr char textMagic[] = &quot;LAB3TXT1&quot;;</span>
+<span class="">  13 constexpr std::uint32_t maxSerializedString = 16U * 1024U * 1024U;</span>
+<span class="">  14 constexpr std::uint32_t maxSerializedItems = 1&#x27;000&#x27;000U;</span>
+<span class="">  15 </span>
+<span class="yes">  16 void writeString(std::ostream &amp;output, const std::string &amp;value) {</span>
+<span class="yes">  17     if (value.size() &gt; maxSerializedString) {</span>
+<span class="no">  18         throw std::runtime_error(&quot;строка слишком велика для сериализации&quot;);</span>
+<span class="">  19     }</span>
+<span class="yes">  20     const auto length = static_cast&lt;std::uint32_t&gt;(value.size());</span>
+<span class="yes">  21     output.write(reinterpret_cast&lt;const char *&gt;(&amp;length), sizeof(length));</span>
+<span class="yes">  22     output.write(value.data(), static_cast&lt;std::streamsize&gt;(value.size()));</span>
+<span class="yes">  23 }</span>
+<span class="">  24 </span>
+<span class="yes">  25 std::string readString(std::istream &amp;input) {</span>
+<span class="yes">  26     std::uint32_t length = 0;</span>
+<span class="yes">  27     input.read(reinterpret_cast&lt;char *&gt;(&amp;length), sizeof(length));</span>
+<span class="yes">  28     if (!input || length &gt; maxSerializedString) {</span>
+<span class="no">  29         throw std::runtime_error(&quot;повреждённый бинарный файл&quot;);</span>
+<span class="">  30     }</span>
+<span class="yes">  31     std::string value(length, &#x27;\0&#x27;);</span>
+<span class="yes">  32     input.read(value.data(), static_cast&lt;std::streamsize&gt;(length));</span>
+<span class="yes">  33     if (!input)</span>
+<span class="yes">  34         throw std::runtime_error(&quot;повреждённый бинарный файл&quot;);</span>
+<span class="yes">  35     return value;</span>
+<span class="yes">  36 }</span>
+<span class="">  37 } // namespace</span>
+<span class="">  38 </span>
+<span class="yes">  39 void Container::saveText(const std::filesystem::path &amp;file) const {</span>
+<span class="yes">  40     std::ofstream output(file);</span>
+<span class="yes">  41     if (!output)</span>
+<span class="yes">  42         throw std::runtime_error(&quot;не удалось открыть текстовый файл&quot;);</span>
+<span class="">  43 </span>
+<span class="yes">  44     const auto stored = values();</span>
+<span class="yes">  45     output &lt;&lt; textMagic &lt;&lt; &#x27;\n&#x27; &lt;&lt; std::quoted(type()) &lt;&lt; &#x27;\n&#x27; &lt;&lt; stored.size() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="yes">  46     for (const auto &amp;value : stored)</span>
+<span class="yes">  47         output &lt;&lt; std::quoted(value) &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="yes">  48     if (!output)</span>
+<span class="no">  49         throw std::runtime_error(&quot;ошибка записи текстового файла&quot;);</span>
+<span class="yes">  50 }</span>
+<span class="">  51 </span>
+<span class="yes">  52 void Container::loadText(const std::filesystem::path &amp;file) {</span>
+<span class="yes">  53     std::ifstream input(file);</span>
+<span class="yes">  54     if (!input)</span>
+<span class="yes">  55         throw std::runtime_error(&quot;не удалось открыть текстовый файл&quot;);</span>
+<span class="">  56 </span>
+<span class="yes">  57     std::string magic;</span>
+<span class="yes">  58     std::string storedType;</span>
+<span class="yes">  59     std::size_t count = 0;</span>
+<span class="yes">  60     input &gt;&gt; magic &gt;&gt; std::quoted(storedType) &gt;&gt; count;</span>
+<span class="yes">  61     if (!input || magic != textMagic || storedType != type() || count &gt; maxSerializedItems) {</span>
+<span class="yes">  62         throw std::runtime_error(&quot;неверный формат или тип текстового файла&quot;);</span>
+<span class="">  63     }</span>
+<span class="">  64 </span>
+<span class="yes">  65     std::vector&lt;std::string&gt; stored;</span>
+<span class="yes">  66     stored.reserve(count);</span>
+<span class="yes">  67     for (std::size_t i = 0; i &lt; count; ++i) {</span>
+<span class="yes">  68         std::string value;</span>
+<span class="yes">  69         input &gt;&gt; std::quoted(value);</span>
+<span class="yes">  70         if (!input)</span>
+<span class="yes">  71             throw std::runtime_error(&quot;повреждённый текстовый файл&quot;);</span>
+<span class="yes">  72         stored.push_back(std::move(value));</span>
+<span class="yes">  73     }</span>
+<span class="">  74 </span>
+<span class="yes">  75     restore(stored);</span>
+<span class="yes">  76 }</span>
+<span class="">  77 </span>
+<span class="yes">  78 void Container::saveBinary(const std::filesystem::path &amp;file) const {</span>
+<span class="yes">  79     std::ofstream output(file, std::ios::binary);</span>
+<span class="yes">  80     if (!output)</span>
+<span class="yes">  81         throw std::runtime_error(&quot;не удалось открыть бинарный файл&quot;);</span>
+<span class="">  82 </span>
+<span class="yes">  83     output.write(binaryMagic, sizeof(binaryMagic) - 1);</span>
+<span class="yes">  84     writeString(output, type());</span>
+<span class="yes">  85     const auto stored = values();</span>
+<span class="yes">  86     if (stored.size() &gt; maxSerializedItems) {</span>
+<span class="no">  87         throw std::runtime_error(&quot;слишком много элементов для сериализации&quot;);</span>
+<span class="">  88     }</span>
+<span class="yes">  89     const auto count = static_cast&lt;std::uint32_t&gt;(stored.size());</span>
+<span class="yes">  90     output.write(reinterpret_cast&lt;const char *&gt;(&amp;count), sizeof(count));</span>
+<span class="yes">  91     for (const auto &amp;value : stored)</span>
+<span class="yes">  92         writeString(output, value);</span>
+<span class="yes">  93     if (!output)</span>
+<span class="no">  94         throw std::runtime_error(&quot;ошибка записи бинарного файла&quot;);</span>
+<span class="yes">  95 }</span>
+<span class="">  96 </span>
+<span class="yes">  97 void Container::loadBinary(const std::filesystem::path &amp;file) {</span>
+<span class="yes">  98     std::ifstream input(file, std::ios::binary);</span>
+<span class="yes">  99     if (!input)</span>
+<span class="yes"> 100         throw std::runtime_error(&quot;не удалось открыть бинарный файл&quot;);</span>
+<span class=""> 101 </span>
+<span class="yes"> 102     char magic[sizeof(binaryMagic) - 1]{};</span>
+<span class="yes"> 103     input.read(magic, sizeof(magic));</span>
+<span class="yes"> 104     if (!input || std::string(magic, sizeof(magic)) != binaryMagic) {</span>
+<span class="yes"> 105         throw std::runtime_error(&quot;неверный формат бинарного файла&quot;);</span>
+<span class=""> 106     }</span>
+<span class="yes"> 107     const std::string storedType = readString(input);</span>
+<span class="yes"> 108     if (storedType != type())</span>
+<span class="no"> 109         throw std::runtime_error(&quot;тип контейнера в файле не совпадает&quot;);</span>
+<span class=""> 110 </span>
+<span class="yes"> 111     std::uint32_t count = 0;</span>
+<span class="yes"> 112     input.read(reinterpret_cast&lt;char *&gt;(&amp;count), sizeof(count));</span>
+<span class="yes"> 113     if (!input || count &gt; maxSerializedItems)</span>
+<span class="no"> 114         throw std::runtime_error(&quot;повреждённый бинарный файл&quot;);</span>
+<span class=""> 115 </span>
+<span class="yes"> 116     std::vector&lt;std::string&gt; stored;</span>
+<span class="yes"> 117     stored.reserve(count);</span>
+<span class="yes"> 118     for (std::uint32_t i = 0; i &lt; count; ++i)</span>
+<span class="yes"> 119         stored.push_back(readString(input));</span>
+<span class=""> 120 </span>
+<span class="yes"> 121     restore(stored);</span>
+<span class="yes"> 122 }</span>
+<span class=""> 123 </span>
+<span class=""> 124 </span>
+<span class="yes"> 125 void Container::restore(const std::vector&lt;std::string&gt; &amp;stored) {</span>
+<span class="yes"> 126     auto next = makeContainer(type());</span>
+<span class="yes"> 127     for (const auto &amp;value : stored)</span>
+<span class="yes"> 128         next-&gt;appendSerialized(value);</span>
+<span class="yes"> 129     swapContents(*next);</span>
+<span class="yes"> 130 }</span>
+</pre></details>
+<details id="f6"><summary>cpp/src/database.cpp</summary><pre>
+<span class="">   1 #include &quot;database.h&quot;</span>
+<span class="">   2 </span>
+<span class="">   3 #include &quot;hash_table.h&quot;</span>
+<span class="">   4 #include &quot;structures.h&quot;</span>
+<span class="">   5 </span>
+<span class="">   6 #include &lt;stdexcept&gt;</span>
+<span class="">   7 </span>
+<span class="yes">   8 std::unique_ptr&lt;Container&gt; makeContainer(const std::string &amp;type) {</span>
+<span class="yes">   9     if (type == &quot;Array&quot;)</span>
+<span class="yes">  10         return std::make_unique&lt;Array&gt;();</span>
+<span class="yes">  11     if (type == &quot;SinglyList&quot;)</span>
+<span class="yes">  12         return std::make_unique&lt;SinglyList&gt;();</span>
+<span class="yes">  13     if (type == &quot;DoublyList&quot;)</span>
+<span class="yes">  14         return std::make_unique&lt;DoublyList&gt;();</span>
+<span class="yes">  15     if (type == &quot;Stack&quot;)</span>
+<span class="yes">  16         return std::make_unique&lt;Stack&gt;();</span>
+<span class="yes">  17     if (type == &quot;Queue&quot;)</span>
+<span class="yes">  18         return std::make_unique&lt;Queue&gt;();</span>
+<span class="yes">  19     if (type == &quot;CompleteBinaryTree&quot;)</span>
+<span class="yes">  20         return std::make_unique&lt;CompleteBinaryTree&gt;();</span>
+<span class="yes">  21     if (type == &quot;LinearHashTable&quot;)</span>
+<span class="yes">  22         return std::make_unique&lt;LinearHashTable&gt;();</span>
+<span class="yes">  23     if (type == &quot;DoubleHashTable&quot;)</span>
+<span class="yes">  24         return std::make_unique&lt;DoubleHashTable&gt;();</span>
+<span class="yes">  25     throw std::invalid_argument(&quot;неизвестный тип контейнера: &quot; + type);</span>
+<span class="">  26 }</span>
+<span class="">  27 </span>
+<span class="">  28 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): публичный порядок create(name, type).</span>
+<span class="yes">  29 Container &amp;Database::create(const std::string &amp;name, const std::string &amp;type) {</span>
+<span class="yes">  30     if (name.empty())</span>
+<span class="yes">  31         throw std::invalid_argument(&quot;имя контейнера не может быть пустым&quot;);</span>
+<span class="yes">  32     if (items_.find(name) != items_.end())</span>
+<span class="yes">  33         throw std::invalid_argument(&quot;контейнер уже существует&quot;);</span>
+<span class="yes">  34     auto container = makeContainer(type);</span>
+<span class="yes">  35     Container &amp;reference = *container;</span>
+<span class="yes">  36     items_.emplace(name, std::move(container));</span>
+<span class="yes">  37     return reference;</span>
+<span class="yes">  38 }</span>
+<span class="">  39 </span>
+<span class="yes">  40 Container &amp;Database::get(const std::string &amp;name) {</span>
+<span class="yes">  41     const auto found = items_.find(name);</span>
+<span class="yes">  42     if (found == items_.end())</span>
+<span class="yes">  43         throw std::out_of_range(&quot;контейнер не найден&quot;);</span>
+<span class="no">  44     return *found-&gt;second;</span>
+<span class="">  45 }</span>
+<span class="">  46 </span>
+<span class="yes">  47 const Container &amp;Database::get(const std::string &amp;name) const {</span>
+<span class="yes">  48     const auto found = items_.find(name);</span>
+<span class="yes">  49     if (found == items_.end())</span>
+<span class="yes">  50         throw std::out_of_range(&quot;контейнер не найден&quot;);</span>
+<span class="yes">  51     return *found-&gt;second;</span>
+<span class="">  52 }</span>
+<span class="">  53 </span>
+<span class="yes">  54 bool Database::erase(const std::string &amp;name) noexcept { return items_.erase(name) != 0; }</span>
+</pre></details>
+<details id="f7"><summary>cpp/src/hash_table.cpp</summary><pre>
+<span class="">   1 #include &quot;hash_table.h&quot;</span>
+<span class="">   2 </span>
+<span class="">   3 #include &lt;charconv&gt;</span>
+<span class="">   4 #include &lt;cstdlib&gt;</span>
+<span class="">   5 #include &lt;limits&gt;</span>
+<span class="">   6 #include &lt;stdexcept&gt;</span>
+<span class="">   7 </span>
+<span class="yes">   8 OpenAddressHashTable::OpenAddressHashTable(std::size_t capacity)</span>
+<span class="yes">   9     : cells_(nextPrime(capacity &lt; 3 ? 3 : capacity)) {}</span>
+<span class="">  10 </span>
+<span class="yes">  11 long long OpenAddressHashTable::foldKey(int key) noexcept {</span>
+<span class="yes">  12     long long number = key;</span>
+<span class="yes">  13     if (number &lt; 0)</span>
+<span class="yes">  14         number = -number;</span>
+<span class="yes">  15     long long sum = 0;</span>
+<span class="">  16     do {</span>
+<span class="yes">  17         sum += number % 1000;</span>
+<span class="yes">  18         number /= 1000;</span>
+<span class="yes">  19     } while (number != 0);</span>
+<span class="yes">  20     return sum;</span>
+<span class="">  21 }</span>
+<span class="">  22 </span>
+<span class="yes">  23 std::size_t OpenAddressHashTable::nextPrime(std::size_t value) {</span>
+<span class="yes">  24     const auto prime = [](std::size_t number) {</span>
+<span class="yes">  25         if (number &lt; 2)</span>
+<span class="no">  26             return false;</span>
+<span class="yes">  27         for (std::size_t divisor = 2; divisor &lt;= number / divisor; ++divisor) {</span>
+<span class="yes">  28             if (number % divisor == 0)</span>
+<span class="yes">  29                 return false;</span>
+<span class="">  30         }</span>
+<span class="yes">  31         return true;</span>
+<span class="">  32     };</span>
+<span class="yes">  33     while (!prime(value)) {</span>
+<span class="yes">  34         if (value == std::numeric_limits&lt;std::size_t&gt;::max()) {</span>
+<span class="no">  35             throw std::overflow_error(&quot;слишком большая хеш-таблица&quot;);</span>
+<span class="">  36         }</span>
+<span class="yes">  37         ++value;</span>
+<span class="">  38     }</span>
+<span class="yes">  39     return value;</span>
+<span class="">  40 }</span>
+<span class="">  41 </span>
+<span class="yes">  42 std::size_t OpenAddressHashTable::startIndex(int key) const noexcept {</span>
+<span class="yes">  43     return static_cast&lt;std::size_t&gt;(foldKey(key)) % cells_.size();</span>
+<span class="">  44 }</span>
+<span class="">  45 </span>
+<span class="yes">  46 std::size_t OpenAddressHashTable::locate(int key) const noexcept {</span>
+<span class="yes">  47     const std::size_t start = startIndex(key);</span>
+<span class="yes">  48     const std::size_t step = probeStep(key);</span>
+<span class="yes">  49     for (std::size_t attempt = 0; attempt &lt; cells_.size(); ++attempt) {</span>
+<span class="yes">  50         const std::size_t index = (start + attempt * step) % cells_.size();</span>
+<span class="yes">  51         if (cells_[index].state == State::empty)</span>
+<span class="yes">  52             return cells_.size();</span>
+<span class="yes">  53         if (cells_[index].state == State::occupied &amp;&amp; cells_[index].key == key)</span>
+<span class="yes">  54             return index;</span>
+<span class="">  55     }</span>
+<span class="no">  56     return cells_.size();</span>
+<span class="">  57 }</span>
+<span class="">  58 </span>
+<span class="yes">  59 void OpenAddressHashTable::rebuild(std::size_t capacity) {</span>
+<span class="yes">  60     const auto old = cells_;</span>
+<span class="yes">  61     cells_.assign(nextPrime(capacity), Cell{});</span>
+<span class="yes">  62     size_ = 0;</span>
+<span class="yes">  63     deleted_ = 0;</span>
+<span class="yes">  64     for (const auto &amp;cell : old) {</span>
+<span class="yes">  65         if (cell.state == State::occupied)</span>
+<span class="yes">  66             set(cell.key, cell.value);</span>
+<span class="">  67     }</span>
+<span class="yes">  68 }</span>
+<span class="">  69 </span>
+<span class="yes">  70 void OpenAddressHashTable::set(int key, int value) {</span>
+<span class="yes">  71     const std::size_t existing = locate(key);</span>
+<span class="yes">  72     if (existing != cells_.size()) {</span>
+<span class="yes">  73         cells_[existing].value = value;</span>
+<span class="yes">  74         return;</span>
+<span class="">  75     }</span>
+<span class="">  76 </span>
+<span class="yes">  77     if ((size_ + deleted_ + 1) * 10 &gt; cells_.size() * 7) {</span>
+<span class="yes">  78         const bool grow = (size_ + 1) * 10 &gt; cells_.size() * 7;</span>
+<span class="yes">  79         rebuild(grow ? cells_.size() * 2 + 1 : cells_.size());</span>
+<span class="">  80     }</span>
+<span class="">  81 </span>
+<span class="yes">  82     const std::size_t start = startIndex(key);</span>
+<span class="yes">  83     const std::size_t step = probeStep(key);</span>
+<span class="yes">  84     std::size_t freeIndex = cells_.size();</span>
+<span class="yes">  85     for (std::size_t attempt = 0; attempt &lt; cells_.size(); ++attempt) {</span>
+<span class="yes">  86         const std::size_t index = (start + attempt * step) % cells_.size();</span>
+<span class="yes">  87         if (cells_[index].state == State::deleted &amp;&amp; freeIndex == cells_.size())</span>
+<span class="no">  88             freeIndex = index;</span>
+<span class="yes">  89         if (cells_[index].state == State::empty) {</span>
+<span class="yes">  90             if (freeIndex == cells_.size())</span>
+<span class="yes">  91                 freeIndex = index;</span>
+<span class="yes">  92             break;</span>
+<span class="">  93         }</span>
+<span class="">  94     }</span>
+<span class="yes">  95     if (freeIndex == cells_.size())</span>
+<span class="no">  96         throw std::runtime_error(&quot;хеш-таблица заполнена&quot;);</span>
+<span class="yes">  97     if (cells_[freeIndex].state == State::deleted)</span>
+<span class="no">  98         --deleted_;</span>
+<span class="yes">  99     cells_[freeIndex] = Cell{key, value, State::occupied};</span>
+<span class="yes"> 100     ++size_;</span>
+<span class=""> 101 }</span>
+<span class=""> 102 </span>
+<span class="yes"> 103 bool OpenAddressHashTable::get(int key, int &amp;value) const {</span>
+<span class="yes"> 104     const std::size_t index = locate(key);</span>
+<span class="yes"> 105     if (index == cells_.size())</span>
+<span class="yes"> 106         return false;</span>
+<span class="yes"> 107     value = cells_[index].value;</span>
+<span class="yes"> 108     return true;</span>
+<span class=""> 109 }</span>
+<span class=""> 110 </span>
+<span class="yes"> 111 bool OpenAddressHashTable::erase(int key) {</span>
+<span class="yes"> 112     const std::size_t index = locate(key);</span>
+<span class="yes"> 113     if (index == cells_.size())</span>
+<span class="yes"> 114         return false;</span>
+<span class="yes"> 115     cells_[index].state = State::deleted;</span>
+<span class="yes"> 116     --size_;</span>
+<span class="yes"> 117     ++deleted_;</span>
+<span class="yes"> 118     return true;</span>
+<span class=""> 119 }</span>
+<span class=""> 120 </span>
+<span class="yes"> 121 bool OpenAddressHashTable::contains(int key) const {</span>
+<span class="yes"> 122     int value = 0;</span>
+<span class="yes"> 123     return get(key, value);</span>
+<span class=""> 124 }</span>
+<span class=""> 125 </span>
+<span class="yes"> 126 std::vector&lt;std::string&gt; OpenAddressHashTable::values() const {</span>
+<span class="yes"> 127     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 128     result.reserve(size_);</span>
+<span class="yes"> 129     for (const auto &amp;cell : cells_) {</span>
+<span class="yes"> 130         if (cell.state == State::occupied) {</span>
+<span class="yes"> 131             result.push_back(std::to_string(cell.key) + &quot;=&quot; + std::to_string(cell.value));</span>
+<span class=""> 132         }</span>
+<span class=""> 133     }</span>
+<span class="yes"> 134     return result;</span>
+<span class="no"> 135 }</span>
+<span class=""> 136 </span>
+<span class="no"> 137 void OpenAddressHashTable::clear() noexcept {</span>
+<span class="no"> 138     for (auto &amp;cell : cells_)</span>
+<span class="no"> 139         cell = Cell{};</span>
+<span class="no"> 140     size_ = 0;</span>
+<span class="no"> 141     deleted_ = 0;</span>
+<span class="no"> 142 }</span>
+<span class=""> 143 </span>
+<span class="yes"> 144 void OpenAddressHashTable::appendSerialized(const std::string &amp;value) {</span>
+<span class="yes"> 145     const std::size_t separator = value.find(&#x27;=&#x27;);</span>
+<span class="yes"> 146     if (separator == std::string::npos)</span>
+<span class="yes"> 147         throw std::runtime_error(&quot;повреждённая запись хеш-таблицы&quot;);</span>
+<span class="yes"> 148     int key = 0;</span>
+<span class="yes"> 149     int stored = 0;</span>
+<span class="yes"> 150     const auto parse = [](const char *first, const char *last, int &amp;result) {</span>
+<span class="yes"> 151         const auto converted = std::from_chars(first, last, result);</span>
+<span class="yes"> 152         return converted.ec == std::errc{} &amp;&amp; converted.ptr == last;</span>
+<span class=""> 153     };</span>
+<span class="yes"> 154     if (!parse(value.data(), value.data() + separator, key) ||</span>
+<span class="yes"> 155         !parse(value.data() + separator + 1, value.data() + value.size(), stored)) {</span>
+<span class="no"> 156         throw std::runtime_error(&quot;повреждённая запись хеш-таблицы&quot;);</span>
+<span class=""> 157     }</span>
+<span class="yes"> 158     set(key, stored);</span>
+<span class="yes"> 159 }</span>
+<span class=""> 160 </span>
+<span class="yes"> 161 std::size_t DoubleHashTable::probeStep(int key) const {</span>
+<span class="yes"> 162     long long number = key;</span>
+<span class="yes"> 163     if (number &lt; 0)</span>
+<span class="yes"> 164         number = -number;</span>
+<span class="yes"> 165     return 1 + static_cast&lt;std::size_t&gt;(number) % (capacity() - 1);</span>
+<span class=""> 166 }</span>
+<span class=""> 167 </span>
+<span class=""> 168 </span>
+<span class="yes"> 169 void OpenAddressHashTable::swapContents(Container &amp;other) noexcept {</span>
+<span class="yes"> 170     auto &amp;table = static_cast&lt;OpenAddressHashTable &amp;&gt;(other);</span>
+<span class="yes"> 171     cells_.swap(table.cells_);</span>
+<span class="yes"> 172     std::swap(size_, table.size_);</span>
+<span class="yes"> 173     std::swap(deleted_, table.deleted_);</span>
+<span class="yes"> 174 }</span>
+</pre></details>
+<details id="f8"><summary>cpp/src/main.cpp</summary><pre>
+<span class="">   1 #include &quot;database.h&quot;</span>
+<span class="">   2 #include &quot;hash_table.h&quot;</span>
+<span class="">   3 #include &quot;structures.h&quot;</span>
+<span class="">   4 </span>
+<span class="">   5 #include &lt;filesystem&gt;</span>
+<span class="">   6 #include &lt;iostream&gt;</span>
+<span class="">   7 #include &lt;memory&gt;</span>
+<span class="">   8 #include &lt;string&gt;</span>
+<span class="">   9 #include &lt;vector&gt;</span>
+<span class="">  10 </span>
+<span class="">  11 namespace {</span>
+<span class="yes">  12 void print(const Container &amp;container) {</span>
+<span class="yes">  13     std::cout &lt;&lt; container.type() &lt;&lt; &quot; [&quot;;</span>
+<span class="yes">  14     const auto stored = container.values();</span>
+<span class="yes">  15     for (std::size_t i = 0; i &lt; stored.size(); ++i) {</span>
+<span class="yes">  16         if (i != 0)</span>
+<span class="yes">  17             std::cout &lt;&lt; &quot;, &quot;;</span>
+<span class="yes">  18         std::cout &lt;&lt; stored[i];</span>
+<span class="">  19     }</span>
+<span class="yes">  20     std::cout &lt;&lt; &quot;]\n&quot;;</span>
+<span class="yes">  21 }</span>
+<span class="">  22 } // namespace</span>
+<span class="">  23 </span>
+<span class="yes">  24 int main() { // NOLINT(bugprone-exception-escape): ниже есть catch для всех исключений.</span>
+<span class="">  25     try {</span>
+<span class="yes">  26         std::cout &lt;&lt; &quot;LAB3, variant 1. C++ demo\n\n&quot;;</span>
+<span class="">  27 </span>
+<span class="yes">  28         Array array;</span>
+<span class="yes">  29         array.pushBack(&quot;alpha&quot;);</span>
+<span class="yes">  30         array.pushBack(&quot;gamma&quot;);</span>
+<span class="yes">  31         array.insert(1, &quot;beta&quot;);</span>
+<span class="yes">  32         array.erase(0);</span>
+<span class="yes">  33         print(array);</span>
+<span class="">  34 </span>
+<span class="yes">  35         SinglyList singly;</span>
+<span class="yes">  36         singly.pushBack(&quot;one&quot;);</span>
+<span class="yes">  37         singly.pushBack(&quot;three&quot;);</span>
+<span class="yes">  38         singly.insert(1, &quot;two&quot;);</span>
+<span class="yes">  39         print(singly);</span>
+<span class="">  40 </span>
+<span class="yes">  41         DoublyList doubly;</span>
+<span class="yes">  42         doubly.pushFront(&quot;center&quot;);</span>
+<span class="yes">  43         doubly.pushFront(&quot;left&quot;);</span>
+<span class="yes">  44         doubly.pushBack(&quot;right&quot;);</span>
+<span class="yes">  45         print(doubly);</span>
+<span class="">  46 </span>
+<span class="yes">  47         Stack stack;</span>
+<span class="yes">  48         stack.push(&quot;first&quot;);</span>
+<span class="yes">  49         stack.push(&quot;second&quot;);</span>
+<span class="yes">  50         std::cout &lt;&lt; &quot;Stack pop: &quot; &lt;&lt; stack.pop() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="yes">  51         print(stack);</span>
+<span class="">  52 </span>
+<span class="yes">  53         Queue queue;</span>
+<span class="yes">  54         queue.push(&quot;first&quot;);</span>
+<span class="yes">  55         queue.push(&quot;second&quot;);</span>
+<span class="yes">  56         std::cout &lt;&lt; &quot;Queue pop: &quot; &lt;&lt; queue.pop() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="yes">  57         print(queue);</span>
+<span class="">  58 </span>
+<span class="yes">  59         CompleteBinaryTree tree;</span>
+<span class="yes">  60         for (int value = 1; value &lt;= 7; ++value)</span>
+<span class="yes">  61             tree.insert(std::to_string(value));</span>
+<span class="yes">  62         print(tree);</span>
+<span class="yes">  63         std::cout &lt;&lt; &quot;Tree is complete: &quot; &lt;&lt; std::boolalpha &lt;&lt; tree.isComplete() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="">  64 </span>
+<span class="yes">  65         LinearHashTable linear;</span>
+<span class="yes">  66         DoubleHashTable doubled;</span>
+<span class="yes">  67         for (int key : {1, 1001, 2001}) {</span>
+<span class="yes">  68             linear.set(key, key * 10);</span>
+<span class="yes">  69             doubled.set(key, key * 10);</span>
+<span class="">  70         }</span>
+<span class="yes">  71         print(linear);</span>
+<span class="yes">  72         print(doubled);</span>
+<span class="">  73 </span>
+<span class="yes">  74         const auto textFile = std::filesystem::temp_directory_path() / &quot;lab3_array.txt&quot;;</span>
+<span class="yes">  75         const auto binaryFile = std::filesystem::temp_directory_path() / &quot;lab3_array.bin&quot;;</span>
+<span class="yes">  76         array.saveText(textFile);</span>
+<span class="yes">  77         array.saveBinary(binaryFile);</span>
+<span class="yes">  78         Array restored;</span>
+<span class="yes">  79         restored.loadBinary(binaryFile);</span>
+<span class="yes">  80         std::cout &lt;&lt; &quot;Restored from binary: &quot;;</span>
+<span class="yes">  81         print(restored);</span>
+<span class="yes">  82         std::filesystem::remove(textFile);</span>
+<span class="yes">  83         std::filesystem::remove(binaryFile);</span>
+<span class="">  84 </span>
+<span class="yes">  85         Database database;</span>
+<span class="yes">  86         database.create(&quot;numbers&quot;, &quot;Array&quot;);</span>
+<span class="yes">  87         database.create(&quot;index&quot;, &quot;DoubleHashTable&quot;);</span>
+<span class="yes">  88         std::cout &lt;&lt; &quot;Polymorphic database objects: &quot; &lt;&lt; database.size() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="yes">  89         std::cout &lt;&lt; &quot;Demo completed successfully.\n&quot;;</span>
+<span class="yes">  90         return 0;</span>
+<span class="yes">  91     } catch (const std::exception &amp;error) {</span>
+<span class="no">  92         std::cerr &lt;&lt; &quot;Error: &quot; &lt;&lt; error.what() &lt;&lt; &#x27;\n&#x27;;</span>
+<span class="no">  93         return 1;</span>
+<span class="no">  94     } catch (...) {</span>
+<span class="no">  95         std::cerr &lt;&lt; &quot;Error: unknown exception\n&quot;;</span>
+<span class="no">  96         return 2;</span>
+<span class="no">  97     }</span>
+<span class="">  98 }</span>
+</pre></details>
+<details id="f9"><summary>cpp/src/structures.cpp</summary><pre>
+<span class="">   1 #include &quot;structures.h&quot;</span>
+<span class="">   2 </span>
+<span class="">   3 #include &lt;algorithm&gt;</span>
+<span class="">   4 #include &lt;memory&gt;</span>
+<span class="">   5 #include &lt;queue&gt;</span>
+<span class="">   6 #include &lt;stdexcept&gt;</span>
+<span class="">   7 #include &lt;utility&gt;</span>
+<span class="">   8 </span>
+<span class="yes">   9 Array::Array(const Array &amp;other) : Array() {</span>
+<span class="yes">  10     reserve(other.size_);</span>
+<span class="yes">  11     for (std::size_t i = 0; i &lt; other.size_; ++i)</span>
+<span class="yes">  12         data_[i] = other.data_[i];</span>
+<span class="yes">  13     size_ = other.size_;</span>
+<span class="yes">  14 }</span>
+<span class="">  15 </span>
+<span class="yes">  16 Array::Array(Array &amp;&amp;other) noexcept</span>
+<span class="yes">  17     : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {</span>
+<span class="yes">  18     other.data_ = nullptr;</span>
+<span class="yes">  19     other.size_ = other.capacity_ = 0;</span>
+<span class="yes">  20 }</span>
+<span class="">  21 </span>
+<span class="yes">  22 Array &amp;Array::operator=(const Array &amp;other) {</span>
+<span class="yes">  23     if (this == &amp;other)</span>
+<span class="no">  24         return *this;</span>
+<span class="yes">  25     Array copy(other);</span>
+<span class="yes">  26     std::swap(data_, copy.data_);</span>
+<span class="yes">  27     std::swap(size_, copy.size_);</span>
+<span class="yes">  28     std::swap(capacity_, copy.capacity_);</span>
+<span class="yes">  29     return *this;</span>
+<span class="yes">  30 }</span>
+<span class="">  31 </span>
+<span class="yes">  32 Array &amp;Array::operator=(Array &amp;&amp;other) noexcept {</span>
+<span class="yes">  33     if (this == &amp;other)</span>
+<span class="no">  34         return *this;</span>
+<span class="yes">  35     clear();</span>
+<span class="yes">  36     data_ = other.data_;</span>
+<span class="yes">  37     size_ = other.size_;</span>
+<span class="yes">  38     capacity_ = other.capacity_;</span>
+<span class="yes">  39     other.data_ = nullptr;</span>
+<span class="yes">  40     other.size_ = other.capacity_ = 0;</span>
+<span class="yes">  41     return *this;</span>
+<span class="">  42 }</span>
+<span class="">  43 </span>
+<span class="yes">  44 Array::~Array() { clear(); }</span>
+<span class="">  45 </span>
+<span class="yes">  46 void Array::reserve(std::size_t newCapacity) {</span>
+<span class="yes">  47     if (newCapacity &lt;= capacity_)</span>
+<span class="no">  48         return;</span>
+<span class="yes">  49     auto *replacement = new std::string[newCapacity];</span>
+<span class="yes">  50     for (std::size_t i = 0; i &lt; size_; ++i)</span>
+<span class="yes">  51         replacement[i] = std::move(data_[i]);</span>
+<span class="yes">  52     delete[] data_;</span>
+<span class="yes">  53     data_ = replacement;</span>
+<span class="yes">  54     capacity_ = newCapacity;</span>
+<span class="">  55 }</span>
+<span class="">  56 </span>
+<span class="yes">  57 void Array::pushBack(const std::string &amp;value) {</span>
+<span class="yes">  58     insert(size_, value);</span>
+<span class="yes">  59 }</span>
+<span class="">  60 </span>
+<span class="yes">  61 void Array::insert(std::size_t index, const std::string &amp;value) {</span>
+<span class="yes">  62     if (index &gt; size_)</span>
+<span class="yes">  63         throw std::out_of_range(&quot;индекс массива вне диапазона&quot;);</span>
+<span class="yes">  64     std::string saved(value);</span>
+<span class="yes">  65     if (size_ == capacity_)</span>
+<span class="yes">  66         reserve(capacity_ == 0 ? 4 : capacity_ * 2);</span>
+<span class="yes">  67     for (std::size_t i = size_; i &gt; index; --i)</span>
+<span class="yes">  68         data_[i] = std::move(data_[i - 1]);</span>
+<span class="yes">  69     data_[index] = std::move(saved);</span>
+<span class="yes">  70     ++size_;</span>
+<span class="yes">  71 }</span>
+<span class="">  72 </span>
+<span class="yes">  73 void Array::erase(std::size_t index) {</span>
+<span class="yes">  74     if (index &gt;= size_)</span>
+<span class="yes">  75         throw std::out_of_range(&quot;индекс массива вне диапазона&quot;);</span>
+<span class="yes">  76     for (std::size_t i = index; i + 1 &lt; size_; ++i)</span>
+<span class="yes">  77         data_[i] = std::move(data_[i + 1]);</span>
+<span class="yes">  78     --size_;</span>
+<span class="yes">  79     data_[size_].clear();</span>
+<span class="yes">  80 }</span>
+<span class="">  81 </span>
+<span class="yes">  82 const std::string &amp;Array::at(std::size_t index) const {</span>
+<span class="yes">  83     if (index &gt;= size_)</span>
+<span class="yes">  84         throw std::out_of_range(&quot;индекс массива вне диапазона&quot;);</span>
+<span class="yes">  85     return data_[index];</span>
+<span class="">  86 }</span>
+<span class="">  87 </span>
+<span class="yes">  88 void Array::set(std::size_t index, const std::string &amp;value) {</span>
+<span class="yes">  89     if (index &gt;= size_)</span>
+<span class="yes">  90         throw std::out_of_range(&quot;индекс массива вне диапазона&quot;);</span>
+<span class="yes">  91     data_[index] = value;</span>
+<span class="yes">  92 }</span>
+<span class="">  93 </span>
+<span class="yes">  94 int Array::find(const std::string &amp;value) const noexcept {</span>
+<span class="yes">  95     for (std::size_t i = 0; i &lt; size_; ++i) {</span>
+<span class="yes">  96         if (data_[i] == value)</span>
+<span class="yes">  97             return static_cast&lt;int&gt;(i);</span>
+<span class="">  98     }</span>
+<span class="yes">  99     return -1;</span>
+<span class=""> 100 }</span>
+<span class=""> 101 </span>
+<span class="yes"> 102 std::vector&lt;std::string&gt; Array::values() const {</span>
+<span class="yes"> 103     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 104     result.reserve(size_);</span>
+<span class="yes"> 105     for (std::size_t i = 0; i &lt; size_; ++i)</span>
+<span class="yes"> 106         result.push_back(data_[i]);</span>
+<span class="yes"> 107     return result;</span>
+<span class="no"> 108 }</span>
+<span class=""> 109 </span>
+<span class="yes"> 110 std::ostream &amp;operator&lt;&lt;(std::ostream &amp;output, const Array &amp;array) {</span>
+<span class="yes"> 111     output &lt;&lt; &#x27;[&#x27;;</span>
+<span class="yes"> 112     for (std::size_t i = 0; i &lt; array.size(); ++i) {</span>
+<span class="yes"> 113         if (i != 0)</span>
+<span class="yes"> 114             output &lt;&lt; &quot;, &quot;;</span>
+<span class="yes"> 115         output &lt;&lt; array[i];</span>
+<span class=""> 116     }</span>
+<span class="yes"> 117     return output &lt;&lt; &#x27;]&#x27;;</span>
+<span class=""> 118 }</span>
+<span class=""> 119 </span>
+<span class="yes"> 120 void Array::clear() noexcept {</span>
+<span class="yes"> 121     delete[] data_;</span>
+<span class="yes"> 122     data_ = nullptr;</span>
+<span class="yes"> 123     size_ = capacity_ = 0;</span>
+<span class="yes"> 124 }</span>
+<span class=""> 125 </span>
+<span class="yes"> 126 SinglyList::SinglyList(const SinglyList &amp;other) : SinglyList() {</span>
+<span class="yes"> 127     for (const auto &amp;value : other.values())</span>
+<span class="yes"> 128         pushBack(value);</span>
+<span class="yes"> 129 }</span>
+<span class=""> 130 </span>
+<span class="yes"> 131 SinglyList::SinglyList(SinglyList &amp;&amp;other) noexcept { swap(other); }</span>
+<span class=""> 132 </span>
+<span class="yes"> 133 SinglyList &amp;SinglyList::operator=(const SinglyList &amp;other) {</span>
+<span class="yes"> 134     if (this != &amp;other) {</span>
+<span class="yes"> 135         SinglyList copy(other);</span>
+<span class="yes"> 136         swap(copy);</span>
+<span class="yes"> 137     }</span>
+<span class="yes"> 138     return *this;</span>
+<span class=""> 139 }</span>
+<span class=""> 140 </span>
+<span class="yes"> 141 SinglyList &amp;SinglyList::operator=(SinglyList &amp;&amp;other) noexcept {</span>
+<span class="yes"> 142     if (this != &amp;other) {</span>
+<span class="yes"> 143         clear();</span>
+<span class="yes"> 144         swap(other);</span>
+<span class=""> 145     }</span>
+<span class="yes"> 146     return *this;</span>
+<span class=""> 147 }</span>
+<span class=""> 148 </span>
+<span class="yes"> 149 SinglyList::~SinglyList() { clear(); }</span>
+<span class=""> 150 </span>
+<span class="yes"> 151 void SinglyList::swap(SinglyList &amp;other) noexcept {</span>
+<span class="yes"> 152     std::swap(head_, other.head_);</span>
+<span class="yes"> 153     std::swap(tail_, other.tail_);</span>
+<span class="yes"> 154     std::swap(size_, other.size_);</span>
+<span class="yes"> 155 }</span>
+<span class=""> 156 </span>
+<span class="yes"> 157 SinglyList::Node *SinglyList::nodeAt(std::size_t index) const {</span>
+<span class="yes"> 158     if (index &gt;= size_)</span>
+<span class="yes"> 159         throw std::out_of_range(&quot;индекс списка вне диапазона&quot;);</span>
+<span class="yes"> 160     Node *node = head_;</span>
+<span class="yes"> 161     for (std::size_t i = 0; i &lt; index; ++i)</span>
+<span class="yes"> 162         node = node-&gt;next;</span>
+<span class="yes"> 163     return node;</span>
+<span class=""> 164 }</span>
+<span class=""> 165 </span>
+<span class="yes"> 166 void SinglyList::pushFront(const std::string &amp;value) {</span>
+<span class="yes"> 167     Node *added = new Node{value, head_};</span>
+<span class="yes"> 168     head_ = added;</span>
+<span class="yes"> 169     if (!tail_)</span>
+<span class="yes"> 170         tail_ = added;</span>
+<span class="yes"> 171     ++size_;</span>
+<span class="yes"> 172 }</span>
+<span class=""> 173 </span>
+<span class="yes"> 174 void SinglyList::pushBack(const std::string &amp;value) {</span>
+<span class="yes"> 175     Node *added = new Node{value};</span>
+<span class="yes"> 176     if (tail_)</span>
+<span class="yes"> 177         tail_-&gt;next = added;</span>
+<span class=""> 178     else</span>
+<span class="yes"> 179         head_ = added;</span>
+<span class="yes"> 180     tail_ = added;</span>
+<span class="yes"> 181     ++size_;</span>
+<span class="yes"> 182 }</span>
+<span class=""> 183 </span>
+<span class="yes"> 184 void SinglyList::insert(std::size_t index, const std::string &amp;value) {</span>
+<span class="yes"> 185     if (index &gt; size_)</span>
+<span class="yes"> 186         throw std::out_of_range(&quot;индекс списка вне диапазона&quot;);</span>
+<span class="yes"> 187     if (index == 0)</span>
+<span class="yes"> 188         return pushFront(value);</span>
+<span class="yes"> 189     if (index == size_)</span>
+<span class="yes"> 190         return pushBack(value);</span>
+<span class="yes"> 191     Node *before = nodeAt(index - 1);</span>
+<span class="yes"> 192     before-&gt;next = new Node{value, before-&gt;next};</span>
+<span class="yes"> 193     ++size_;</span>
+<span class=""> 194 }</span>
+<span class=""> 195 </span>
+<span class="yes"> 196 void SinglyList::erase(std::size_t index) {</span>
+<span class="yes"> 197     if (index &gt;= size_)</span>
+<span class="yes"> 198         throw std::out_of_range(&quot;индекс списка вне диапазона&quot;);</span>
+<span class="yes"> 199     Node *removed = nullptr;</span>
+<span class="yes"> 200     if (index == 0) {</span>
+<span class="yes"> 201         removed = head_;</span>
+<span class="yes"> 202         head_ = head_-&gt;next;</span>
+<span class=""> 203     } else {</span>
+<span class="yes"> 204         Node *before = nodeAt(index - 1);</span>
+<span class="yes"> 205         removed = before-&gt;next;</span>
+<span class="yes"> 206         before-&gt;next = removed-&gt;next;</span>
+<span class="yes"> 207         if (removed == tail_)</span>
+<span class="yes"> 208             tail_ = before;</span>
+<span class=""> 209     }</span>
+<span class="yes"> 210     delete removed;</span>
+<span class="yes"> 211     --size_;</span>
+<span class="yes"> 212     if (size_ == 0)</span>
+<span class="yes"> 213         tail_ = nullptr;</span>
+<span class="yes"> 214 }</span>
+<span class=""> 215 </span>
+<span class="yes"> 216 const std::string &amp;SinglyList::at(std::size_t index) const { return nodeAt(index)-&gt;value; }</span>
+<span class=""> 217 </span>
+<span class="yes"> 218 int SinglyList::find(const std::string &amp;value) const noexcept {</span>
+<span class="yes"> 219     std::size_t index = 0;</span>
+<span class="yes"> 220     for (Node *node = head_; node; node = node-&gt;next, ++index) {</span>
+<span class="yes"> 221         if (node-&gt;value == value)</span>
+<span class="yes"> 222             return static_cast&lt;int&gt;(index);</span>
+<span class=""> 223     }</span>
+<span class="yes"> 224     return -1;</span>
+<span class=""> 225 }</span>
+<span class=""> 226 </span>
+<span class="yes"> 227 std::vector&lt;std::string&gt; SinglyList::values() const {</span>
+<span class="yes"> 228     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 229     result.reserve(size_);</span>
+<span class="yes"> 230     for (Node *node = head_; node; node = node-&gt;next)</span>
+<span class="yes"> 231         result.push_back(node-&gt;value);</span>
+<span class="yes"> 232     return result;</span>
+<span class="no"> 233 }</span>
+<span class=""> 234 </span>
+<span class="yes"> 235 void SinglyList::clear() noexcept {</span>
+<span class="yes"> 236     while (head_) {</span>
+<span class="yes"> 237         Node *removed = head_;</span>
+<span class="yes"> 238         head_ = head_-&gt;next;</span>
+<span class="yes"> 239         delete removed;</span>
+<span class=""> 240     }</span>
+<span class="yes"> 241     tail_ = nullptr;</span>
+<span class="yes"> 242     size_ = 0;</span>
+<span class="yes"> 243 }</span>
+<span class=""> 244 </span>
+<span class="yes"> 245 DoublyList::DoublyList(const DoublyList &amp;other) : DoublyList() {</span>
+<span class="yes"> 246     for (const auto &amp;value : other.values())</span>
+<span class="yes"> 247         pushBack(value);</span>
+<span class="yes"> 248 }</span>
+<span class=""> 249 </span>
+<span class="yes"> 250 DoublyList::DoublyList(DoublyList &amp;&amp;other) noexcept { swap(other); }</span>
+<span class=""> 251 </span>
+<span class="yes"> 252 DoublyList &amp;DoublyList::operator=(const DoublyList &amp;other) {</span>
+<span class="yes"> 253     if (this != &amp;other) {</span>
+<span class="yes"> 254         DoublyList copy(other);</span>
+<span class="yes"> 255         swap(copy);</span>
+<span class="yes"> 256     }</span>
+<span class="yes"> 257     return *this;</span>
+<span class=""> 258 }</span>
+<span class=""> 259 </span>
+<span class="yes"> 260 DoublyList &amp;DoublyList::operator=(DoublyList &amp;&amp;other) noexcept {</span>
+<span class="yes"> 261     if (this != &amp;other) {</span>
+<span class="yes"> 262         clear();</span>
+<span class="yes"> 263         swap(other);</span>
+<span class=""> 264     }</span>
+<span class="yes"> 265     return *this;</span>
+<span class=""> 266 }</span>
+<span class=""> 267 </span>
+<span class="yes"> 268 DoublyList::~DoublyList() { clear(); }</span>
+<span class=""> 269 </span>
+<span class="yes"> 270 void DoublyList::swap(DoublyList &amp;other) noexcept {</span>
+<span class="yes"> 271     std::swap(head_, other.head_);</span>
+<span class="yes"> 272     std::swap(tail_, other.tail_);</span>
+<span class="yes"> 273     std::swap(size_, other.size_);</span>
+<span class="yes"> 274 }</span>
+<span class=""> 275 </span>
+<span class="yes"> 276 DoublyList::Node *DoublyList::nodeAt(std::size_t index) const {</span>
+<span class="yes"> 277     if (index &gt;= size_)</span>
+<span class="yes"> 278         throw std::out_of_range(&quot;индекс списка вне диапазона&quot;);</span>
+<span class="yes"> 279     if (index &lt; size_ / 2) {</span>
+<span class="yes"> 280         Node *node = head_;</span>
+<span class="yes"> 281         for (std::size_t i = 0; i &lt; index; ++i)</span>
+<span class="no"> 282             node = node-&gt;next;</span>
+<span class="yes"> 283         return node;</span>
+<span class=""> 284     }</span>
+<span class="yes"> 285     Node *node = tail_;</span>
+<span class="yes"> 286     for (std::size_t i = size_ - 1; i &gt; index; --i)</span>
+<span class="yes"> 287         node = node-&gt;prev;</span>
+<span class="yes"> 288     return node;</span>
+<span class=""> 289 }</span>
+<span class=""> 290 </span>
+<span class="yes"> 291 void DoublyList::linkAfter(Node *before, const std::string &amp;value) {</span>
+<span class="yes"> 292     auto owner = std::make_unique&lt;Node&gt;();</span>
+<span class="yes"> 293     owner-&gt;value = value;</span>
+<span class="yes"> 294     owner-&gt;prev = before;</span>
+<span class="yes"> 295     owner-&gt;next = before != nullptr ? before-&gt;next : head_;</span>
+<span class="yes"> 296     Node *added = owner.release();</span>
+<span class="yes"> 297     if (added-&gt;next != nullptr)</span>
+<span class="yes"> 298         added-&gt;next-&gt;prev = added;</span>
+<span class="yes"> 299     if (before)</span>
+<span class="yes"> 300         before-&gt;next = added;</span>
+<span class=""> 301     else</span>
+<span class="yes"> 302         head_ = added;</span>
+<span class="yes"> 303     if (!added-&gt;next)</span>
+<span class="yes"> 304         tail_ = added;</span>
+<span class="yes"> 305     ++size_;</span>
+<span class="yes"> 306 }</span>
+<span class=""> 307 </span>
+<span class="yes"> 308 void DoublyList::pushFront(const std::string &amp;value) { linkAfter(nullptr, value); }</span>
+<span class=""> 309 </span>
+<span class="yes"> 310 void DoublyList::pushBack(const std::string &amp;value) { linkAfter(tail_, value); }</span>
+<span class=""> 311 </span>
+<span class="yes"> 312 void DoublyList::insert(std::size_t index, const std::string &amp;value) {</span>
+<span class="yes"> 313     if (index &gt; size_)</span>
+<span class="yes"> 314         throw std::out_of_range(&quot;индекс списка вне диапазона&quot;);</span>
+<span class="yes"> 315     linkAfter(index == 0 ? nullptr : nodeAt(index - 1), value);</span>
+<span class="yes"> 316 }</span>
+<span class=""> 317 </span>
+<span class="yes"> 318 void DoublyList::erase(std::size_t index) {</span>
+<span class="yes"> 319     Node *removed = nodeAt(index);</span>
+<span class="yes"> 320     if (removed-&gt;prev)</span>
+<span class="yes"> 321         removed-&gt;prev-&gt;next = removed-&gt;next;</span>
+<span class=""> 322     else</span>
+<span class="yes"> 323         head_ = removed-&gt;next;</span>
+<span class="yes"> 324     if (removed-&gt;next)</span>
+<span class="yes"> 325         removed-&gt;next-&gt;prev = removed-&gt;prev;</span>
+<span class=""> 326     else</span>
+<span class="yes"> 327         tail_ = removed-&gt;prev;</span>
+<span class="yes"> 328     delete removed;</span>
+<span class="yes"> 329     --size_;</span>
+<span class="yes"> 330 }</span>
+<span class=""> 331 </span>
+<span class="yes"> 332 const std::string &amp;DoublyList::at(std::size_t index) const { return nodeAt(index)-&gt;value; }</span>
+<span class=""> 333 </span>
+<span class="yes"> 334 int DoublyList::find(const std::string &amp;value) const noexcept {</span>
+<span class="yes"> 335     std::size_t index = 0;</span>
+<span class="yes"> 336     for (Node *node = head_; node; node = node-&gt;next, ++index) {</span>
+<span class="yes"> 337         if (node-&gt;value == value)</span>
+<span class="yes"> 338             return static_cast&lt;int&gt;(index);</span>
+<span class=""> 339     }</span>
+<span class="yes"> 340     return -1;</span>
+<span class=""> 341 }</span>
+<span class=""> 342 </span>
+<span class="yes"> 343 std::vector&lt;std::string&gt; DoublyList::values() const {</span>
+<span class="yes"> 344     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 345     result.reserve(size_);</span>
+<span class="yes"> 346     for (Node *node = head_; node; node = node-&gt;next)</span>
+<span class="yes"> 347         result.push_back(node-&gt;value);</span>
+<span class="yes"> 348     return result;</span>
+<span class="no"> 349 }</span>
+<span class=""> 350 </span>
+<span class="yes"> 351 std::vector&lt;std::string&gt; DoublyList::reverseValues() const {</span>
+<span class="yes"> 352     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 353     result.reserve(size_);</span>
+<span class="yes"> 354     for (Node *node = tail_; node; node = node-&gt;prev)</span>
+<span class="yes"> 355         result.push_back(node-&gt;value);</span>
+<span class="yes"> 356     return result;</span>
+<span class="no"> 357 }</span>
+<span class=""> 358 </span>
+<span class="yes"> 359 void DoublyList::clear() noexcept {</span>
+<span class="yes"> 360     while (head_) {</span>
+<span class="yes"> 361         Node *removed = head_;</span>
+<span class="yes"> 362         head_ = head_-&gt;next;</span>
+<span class="yes"> 363         delete removed;</span>
+<span class=""> 364     }</span>
+<span class="yes"> 365     tail_ = nullptr;</span>
+<span class="yes"> 366     size_ = 0;</span>
+<span class="yes"> 367 }</span>
+<span class=""> 368 </span>
+<span class="yes"> 369 Stack::Stack(const Stack &amp;other) : Stack() {</span>
+<span class="yes"> 370     auto stored = other.values();</span>
+<span class="yes"> 371     for (auto it = stored.rbegin(); it != stored.rend(); ++it)</span>
+<span class="yes"> 372         push(*it);</span>
+<span class="yes"> 373 }</span>
+<span class=""> 374 </span>
+<span class="yes"> 375 Stack::Stack(Stack &amp;&amp;other) noexcept { swap(other); }</span>
+<span class=""> 376 </span>
+<span class="yes"> 377 Stack &amp;Stack::operator=(const Stack &amp;other) {</span>
+<span class="yes"> 378     if (this != &amp;other) {</span>
+<span class="yes"> 379         Stack copy(other);</span>
+<span class="yes"> 380         swap(copy);</span>
+<span class="yes"> 381     }</span>
+<span class="yes"> 382     return *this;</span>
+<span class=""> 383 }</span>
+<span class=""> 384 </span>
+<span class="yes"> 385 Stack &amp;Stack::operator=(Stack &amp;&amp;other) noexcept {</span>
+<span class="yes"> 386     if (this != &amp;other) {</span>
+<span class="yes"> 387         clear();</span>
+<span class="yes"> 388         swap(other);</span>
+<span class=""> 389     }</span>
+<span class="yes"> 390     return *this;</span>
+<span class=""> 391 }</span>
+<span class=""> 392 </span>
+<span class="yes"> 393 Stack::~Stack() { clear(); }</span>
+<span class=""> 394 </span>
+<span class="yes"> 395 void Stack::swap(Stack &amp;other) noexcept {</span>
+<span class="yes"> 396     std::swap(top_, other.top_);</span>
+<span class="yes"> 397     std::swap(size_, other.size_);</span>
+<span class="yes"> 398 }</span>
+<span class=""> 399 </span>
+<span class="yes"> 400 void Stack::push(const std::string &amp;value) {</span>
+<span class="yes"> 401     top_ = new Node{value, top_};</span>
+<span class="yes"> 402     ++size_;</span>
+<span class="yes"> 403 }</span>
+<span class=""> 404 </span>
+<span class="yes"> 405 std::string Stack::pop() {</span>
+<span class="yes"> 406     if (!top_)</span>
+<span class="yes"> 407         throw std::out_of_range(&quot;стек пуст&quot;);</span>
+<span class="yes"> 408     Node *removed = top_;</span>
+<span class="yes"> 409     std::string value = std::move(removed-&gt;value);</span>
+<span class="yes"> 410     top_ = removed-&gt;next;</span>
+<span class="yes"> 411     delete removed;</span>
+<span class="yes"> 412     --size_;</span>
+<span class="yes"> 413     return value;</span>
+<span class=""> 414 }</span>
+<span class=""> 415 </span>
+<span class="yes"> 416 const std::string &amp;Stack::top() const {</span>
+<span class="yes"> 417     if (!top_)</span>
+<span class="yes"> 418         throw std::out_of_range(&quot;стек пуст&quot;);</span>
+<span class="yes"> 419     return top_-&gt;value;</span>
+<span class=""> 420 }</span>
+<span class=""> 421 </span>
+<span class="yes"> 422 std::vector&lt;std::string&gt; Stack::values() const {</span>
+<span class="yes"> 423     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 424     result.reserve(size_);</span>
+<span class="yes"> 425     for (Node *node = top_; node; node = node-&gt;next)</span>
+<span class="yes"> 426         result.push_back(node-&gt;value);</span>
+<span class="yes"> 427     return result;</span>
+<span class="no"> 428 }</span>
+<span class=""> 429 </span>
+<span class="yes"> 430 void Stack::appendSerialized(const std::string &amp;value) {</span>
+<span class="yes"> 431     Node *added = new Node{value};</span>
+<span class="yes"> 432     if (!top_) {</span>
+<span class="yes"> 433         top_ = added;</span>
+<span class=""> 434     } else {</span>
+<span class="yes"> 435         Node *bottom = top_;</span>
+<span class="yes"> 436         while (bottom-&gt;next)</span>
+<span class="no"> 437             bottom = bottom-&gt;next;</span>
+<span class="yes"> 438         bottom-&gt;next = added;</span>
+<span class=""> 439     }</span>
+<span class="yes"> 440     ++size_;</span>
+<span class="yes"> 441 }</span>
+<span class=""> 442 </span>
+<span class="yes"> 443 void Stack::clear() noexcept {</span>
+<span class="yes"> 444     while (top_) {</span>
+<span class="yes"> 445         Node *removed = top_;</span>
+<span class="yes"> 446         top_ = top_-&gt;next;</span>
+<span class="yes"> 447         delete removed;</span>
+<span class=""> 448     }</span>
+<span class="yes"> 449     size_ = 0;</span>
+<span class="yes"> 450 }</span>
+<span class=""> 451 </span>
+<span class="yes"> 452 Queue::Queue(const Queue &amp;other) : Queue() {</span>
+<span class="yes"> 453     for (const auto &amp;value : other.values())</span>
+<span class="yes"> 454         push(value);</span>
+<span class="yes"> 455 }</span>
+<span class=""> 456 </span>
+<span class="yes"> 457 Queue::Queue(Queue &amp;&amp;other) noexcept { swap(other); }</span>
+<span class=""> 458 </span>
+<span class="yes"> 459 Queue &amp;Queue::operator=(const Queue &amp;other) {</span>
+<span class="yes"> 460     if (this != &amp;other) {</span>
+<span class="yes"> 461         Queue copy(other);</span>
+<span class="yes"> 462         swap(copy);</span>
+<span class="yes"> 463     }</span>
+<span class="yes"> 464     return *this;</span>
+<span class=""> 465 }</span>
+<span class=""> 466 </span>
+<span class="yes"> 467 Queue &amp;Queue::operator=(Queue &amp;&amp;other) noexcept {</span>
+<span class="yes"> 468     if (this != &amp;other) {</span>
+<span class="yes"> 469         clear();</span>
+<span class="yes"> 470         swap(other);</span>
+<span class=""> 471     }</span>
+<span class="yes"> 472     return *this;</span>
+<span class=""> 473 }</span>
+<span class=""> 474 </span>
+<span class="yes"> 475 Queue::~Queue() { clear(); }</span>
+<span class=""> 476 </span>
+<span class="yes"> 477 void Queue::swap(Queue &amp;other) noexcept {</span>
+<span class="yes"> 478     std::swap(head_, other.head_);</span>
+<span class="yes"> 479     std::swap(tail_, other.tail_);</span>
+<span class="yes"> 480     std::swap(size_, other.size_);</span>
+<span class="yes"> 481 }</span>
+<span class=""> 482 </span>
+<span class="yes"> 483 void Queue::push(const std::string &amp;value) {</span>
+<span class="yes"> 484     Node *added = new Node{value};</span>
+<span class="yes"> 485     if (tail_)</span>
+<span class="yes"> 486         tail_-&gt;next = added;</span>
+<span class=""> 487     else</span>
+<span class="yes"> 488         head_ = added;</span>
+<span class="yes"> 489     tail_ = added;</span>
+<span class="yes"> 490     ++size_;</span>
+<span class="yes"> 491 }</span>
+<span class=""> 492 </span>
+<span class="yes"> 493 std::string Queue::pop() {</span>
+<span class="yes"> 494     if (!head_)</span>
+<span class="no"> 495         throw std::out_of_range(&quot;очередь пуста&quot;);</span>
+<span class="yes"> 496     Node *removed = head_;</span>
+<span class="yes"> 497     std::string value = std::move(removed-&gt;value);</span>
+<span class="yes"> 498     head_ = removed-&gt;next;</span>
+<span class="yes"> 499     if (!head_)</span>
+<span class="yes"> 500         tail_ = nullptr;</span>
+<span class="yes"> 501     delete removed;</span>
+<span class="yes"> 502     --size_;</span>
+<span class="yes"> 503     return value;</span>
+<span class=""> 504 }</span>
+<span class=""> 505 </span>
+<span class="yes"> 506 const std::string &amp;Queue::front() const {</span>
+<span class="yes"> 507     if (!head_)</span>
+<span class="yes"> 508         throw std::out_of_range(&quot;очередь пуста&quot;);</span>
+<span class="yes"> 509     return head_-&gt;value;</span>
+<span class=""> 510 }</span>
+<span class=""> 511 </span>
+<span class="yes"> 512 std::vector&lt;std::string&gt; Queue::values() const {</span>
+<span class="yes"> 513     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 514     result.reserve(size_);</span>
+<span class="yes"> 515     for (Node *node = head_; node; node = node-&gt;next)</span>
+<span class="yes"> 516         result.push_back(node-&gt;value);</span>
+<span class="yes"> 517     return result;</span>
+<span class="no"> 518 }</span>
+<span class=""> 519 </span>
+<span class="yes"> 520 void Queue::clear() noexcept {</span>
+<span class="yes"> 521     while (head_) {</span>
+<span class="yes"> 522         Node *removed = head_;</span>
+<span class="yes"> 523         head_ = head_-&gt;next;</span>
+<span class="yes"> 524         delete removed;</span>
+<span class=""> 525     }</span>
+<span class="yes"> 526     tail_ = nullptr;</span>
+<span class="yes"> 527     size_ = 0;</span>
+<span class="yes"> 528 }</span>
+<span class=""> 529 </span>
+<span class="yes"> 530 CompleteBinaryTree::CompleteBinaryTree(const CompleteBinaryTree &amp;other) : CompleteBinaryTree() {</span>
+<span class="yes"> 531     for (const auto &amp;value : other.values())</span>
+<span class="yes"> 532         insert(value);</span>
+<span class="yes"> 533 }</span>
+<span class=""> 534 </span>
+<span class="yes"> 535 CompleteBinaryTree::CompleteBinaryTree(CompleteBinaryTree &amp;&amp;other) noexcept { swap(other); }</span>
+<span class=""> 536 </span>
+<span class="yes"> 537 CompleteBinaryTree &amp;CompleteBinaryTree::operator=(const CompleteBinaryTree &amp;other) {</span>
+<span class="yes"> 538     if (this != &amp;other) {</span>
+<span class="yes"> 539         CompleteBinaryTree copy(other);</span>
+<span class="yes"> 540         swap(copy);</span>
+<span class="yes"> 541     }</span>
+<span class="yes"> 542     return *this;</span>
+<span class=""> 543 }</span>
+<span class=""> 544 </span>
+<span class="yes"> 545 CompleteBinaryTree &amp;CompleteBinaryTree::operator=(CompleteBinaryTree &amp;&amp;other) noexcept {</span>
+<span class="yes"> 546     if (this != &amp;other) {</span>
+<span class="yes"> 547         clear();</span>
+<span class="yes"> 548         swap(other);</span>
+<span class=""> 549     }</span>
+<span class="yes"> 550     return *this;</span>
+<span class=""> 551 }</span>
+<span class=""> 552 </span>
+<span class="yes"> 553 CompleteBinaryTree::~CompleteBinaryTree() { clear(); }</span>
+<span class=""> 554 </span>
+<span class="yes"> 555 void CompleteBinaryTree::swap(CompleteBinaryTree &amp;other) noexcept {</span>
+<span class="yes"> 556     std::swap(root_, other.root_);</span>
+<span class="yes"> 557     std::swap(size_, other.size_);</span>
+<span class="yes"> 558 }</span>
+<span class=""> 559 </span>
+<span class="yes"> 560 void CompleteBinaryTree::insert(const std::string &amp;value) {</span>
+<span class="yes"> 561     auto owner = std::make_unique&lt;Node&gt;();</span>
+<span class="yes"> 562     owner-&gt;value = value;</span>
+<span class="yes"> 563     if (!root_) {</span>
+<span class="yes"> 564         root_ = owner.release();</span>
+<span class="yes"> 565         ++size_;</span>
+<span class="yes"> 566         return;</span>
+<span class=""> 567     }</span>
+<span class="yes"> 568     std::queue&lt;Node *&gt; pending;</span>
+<span class="yes"> 569     pending.push(root_);</span>
+<span class="yes"> 570     while (!pending.empty()) {</span>
+<span class="yes"> 571         Node *current = pending.front();</span>
+<span class="yes"> 572         pending.pop();</span>
+<span class="yes"> 573         if (!current-&gt;left) {</span>
+<span class="yes"> 574             current-&gt;left = owner.release();</span>
+<span class="yes"> 575             ++size_;</span>
+<span class="yes"> 576             return;</span>
+<span class=""> 577         }</span>
+<span class="yes"> 578         if (!current-&gt;right) {</span>
+<span class="yes"> 579             current-&gt;right = owner.release();</span>
+<span class="yes"> 580             ++size_;</span>
+<span class="yes"> 581             return;</span>
+<span class=""> 582         }</span>
+<span class="yes"> 583         pending.push(current-&gt;left);</span>
+<span class="yes"> 584         pending.push(current-&gt;right);</span>
+<span class=""> 585     }</span>
+<span class="yes"> 586 }</span>
+<span class=""> 587 </span>
+<span class="yes"> 588 bool CompleteBinaryTree::contains(const std::string &amp;value) const {</span>
+<span class="yes"> 589     const auto stored = values();</span>
+<span class="yes"> 590     return std::find(stored.begin(), stored.end(), value) != stored.end();</span>
+<span class="yes"> 591 }</span>
+<span class=""> 592 </span>
+<span class="yes"> 593 bool CompleteBinaryTree::isComplete() const {</span>
+<span class="yes"> 594     if (!root_)</span>
+<span class="yes"> 595         return true;</span>
+<span class="yes"> 596     std::queue&lt;Node *&gt; pending;</span>
+<span class="yes"> 597     pending.push(root_);</span>
+<span class="yes"> 598     bool gap = false;</span>
+<span class="yes"> 599     while (!pending.empty()) {</span>
+<span class="yes"> 600         Node *current = pending.front();</span>
+<span class="yes"> 601         pending.pop();</span>
+<span class="yes"> 602         if (!current) {</span>
+<span class="yes"> 603             gap = true;</span>
+<span class=""> 604         } else {</span>
+<span class="yes"> 605             if (gap)</span>
+<span class="no"> 606                 return false;</span>
+<span class="yes"> 607             pending.push(current-&gt;left);</span>
+<span class="yes"> 608             pending.push(current-&gt;right);</span>
+<span class=""> 609         }</span>
+<span class=""> 610     }</span>
+<span class="yes"> 611     return true;</span>
+<span class="yes"> 612 }</span>
+<span class=""> 613 </span>
+<span class="yes"> 614 std::vector&lt;std::string&gt; CompleteBinaryTree::values() const {</span>
+<span class="yes"> 615     std::vector&lt;std::string&gt; result;</span>
+<span class="yes"> 616     result.reserve(size_);</span>
+<span class="yes"> 617     if (!root_)</span>
+<span class="yes"> 618         return result;</span>
+<span class="yes"> 619     std::queue&lt;Node *&gt; pending;</span>
+<span class="yes"> 620     pending.push(root_);</span>
+<span class="yes"> 621     while (!pending.empty()) {</span>
+<span class="yes"> 622         Node *current = pending.front();</span>
+<span class="yes"> 623         pending.pop();</span>
+<span class="yes"> 624         result.push_back(current-&gt;value);</span>
+<span class="yes"> 625         if (current-&gt;left)</span>
+<span class="yes"> 626             pending.push(current-&gt;left);</span>
+<span class="yes"> 627         if (current-&gt;right)</span>
+<span class="yes"> 628             pending.push(current-&gt;right);</span>
+<span class=""> 629     }</span>
+<span class="yes"> 630     return result;</span>
+<span class="yes"> 631 }</span>
+<span class=""> 632 </span>
+<span class="yes"> 633 void CompleteBinaryTree::destroy(Node *node) noexcept {</span>
+<span class="yes"> 634     if (!node)</span>
+<span class="yes"> 635         return;</span>
+<span class="yes"> 636     destroy(node-&gt;left);</span>
+<span class="yes"> 637     destroy(node-&gt;right);</span>
+<span class="yes"> 638     delete node;</span>
+<span class=""> 639 }</span>
+<span class=""> 640 </span>
+<span class="yes"> 641 void CompleteBinaryTree::clear() noexcept {</span>
+<span class="yes"> 642     destroy(root_);</span>
+<span class="yes"> 643     root_ = nullptr;</span>
+<span class="yes"> 644     size_ = 0;</span>
+<span class="yes"> 645 }</span>
+</pre></details>
+<script>onhashchange=()=>{let e=document.getElementById(location.hash.slice(1));if(e)e.open=true};onhashchange()</script></html>

@@ -1,0 +1,32 @@
+@startuml
+skinparam monochrome true
+interface Container {
+  +Type() string
+  +Size() int
+  +Values() []string
+  +Clear()
+}
+class Array
+class SinglyList
+class DoublyList
+class Stack
+class Queue
+class CompleteBinaryTree
+class OpenHashTable {
+  -doubleHash bool
+  +Set(key, value)
+  +Get(key)
+  +Delete(key)
+}
+Container <|.. Array
+Container <|.. SinglyList
+Container <|.. DoublyList
+Container <|.. Stack
+Container <|.. Queue
+Container <|.. CompleteBinaryTree
+Container <|.. OpenHashTable
+note right of OpenHashTable
+  NewLinearHashTable: шаг 1
+  NewDoubleHashTable: шаг от ключа
+end note
+@enduml
