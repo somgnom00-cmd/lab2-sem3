@@ -1,3 +1,0 @@
-Checks: '-*,bugprone-*,clang-analyzer-*,performance-*'
-WarningsAsErrors: ''
-HeaderFilterRegex: 'include/.*'
